@@ -1,0 +1,13 @@
+{
+  "name": "zbyte-full",
+  "version": "1.0.0",
+  "description": "Zbyte – Full-stack earning platform for Nigerians",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
