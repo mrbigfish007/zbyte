@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Complete Payment – Zbyte</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{500:'#22c55e',600:'#16a34a',700:'#15803d'}}}}}</script>
+  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');body{font-family:'Inter',system-ui,sans-serif}</style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+  <div class="bg-white rounded-2xl border shadow-sm p-8 max-w-md w-full text-center">
+    <div class="w-14 h-14 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-5">₦</div>
+    <h1 class="text-2xl font-bold">Complete Membership Payment</h1>
+    <p class="text-gray-600 mt-2 text-sm">This is a <strong>mock payment</strong> page. In production this would redirect to Paystack or Flutterwave.</p>
+    <div class="mt-6 bg-gray-50 rounded-xl p-4 text-left text-sm space-y-2">
+      <div class="flex justify-between"><span class="text-gray-500">Amount</span><span id="amount" class="font-semibold">–</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Tier</span><span id="tier" class="font-semibold capitalize">–</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Reference</span><span id="ref" class="font-mono text-xs">–</span></div>
+    </div>
+    <button id="payBtn" class="mt-8 w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3.5 rounded-xl">
+      Pay Now (Simulate Success)
+    </button>
+    <p id="status" class="mt-4 text-sm text-gray-500"></p>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const ref = params.get('ref');
+    const amount = params.get('amount');
+    const tier = params.get('tier');
+    const userId = params.get('userId') || localStorage.getItem('zbyte_userId');
+
+    document.getElementById('amount').textContent = '₦' + Number(amount).toLocaleString();
+    document.getElementById('tier').textContent = tier;
+    document.getElementById('ref').textContent = ref;
+
+    document.getElementById('payBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('payBtn');
+      const status = document.getElementById('status');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      status.textContent = '';
+
+      try {
+        const res = await fetch('/api/payments/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reference: ref, userId })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Payment failed');
+        status.textContent = 'Payment successful! Redirecting to dashboard...';
+        status.className = 'mt-4 text-sm text-green-600';
+        setTimeout(() => location.href = '/dashboard.html', 1200);
+      } catch (ex) {
+        status.textContent = ex.message;
+        status.className = 'mt-4 text-sm text-red-600';
+        btn.disabled = false;
+        btn.textContent = 'Pay Now (Simulate Success)';
+      }
+    });
+  </script>
+</body>
+</html>
