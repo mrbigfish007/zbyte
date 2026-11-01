@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – Zbyte</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#f0fdf4',100:'#dcfce7',500:'#22c55e',600:'#16a34a',700:'#15803d'}}}}}</script>
+  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');body{font-family:'Inter',system-ui,sans-serif}</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="bg-white border-b sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold">Z</div>
+        <span class="font-bold text-lg">Zbyte</span>
+      </a>
+      <div class="flex items-center gap-4">
+        <span id="userName" class="text-sm font-medium text-gray-700"></span>
+        <button onclick="logout()" class="text-sm text-red-600 font-medium">Log out</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-1">Dashboard</h1>
+    <p class="text-gray-600 text-sm mb-6">Welcome, <span id="greeting">User</span></p>
+
+    <div id="feeBanner" class="hidden mb-6 bg-red-50 border border-red-200 text-red-800 rounded-xl p-4 text-sm">
+      <strong>Fee Pending:</strong> Monthly platform fee outstanding. Tasks and withdrawals are restricted.
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-xl border p-5">
+        <div class="text-xs font-medium text-gray-500 uppercase">Membership</div>
+        <div id="tier" class="mt-1 text-xl font-bold capitalize">–</div>
+      </div>
+      <div class="bg-white rounded-xl border p-5">
+        <div class="text-xs font-medium text-gray-500 uppercase">Task Wallet</div>
+        <div id="taskBal" class="mt-1 text-xl font-bold text-brand-700">₦0</div>
+        <div class="text-xs text-gray-500">Min ₦50,000</div>
+      </div>
+      <div class="bg-white rounded-xl border p-5">
+        <div class="text-xs font-medium text-gray-500 uppercase">Referral Wallet</div>
+        <div id="refBal" class="mt-1 text-xl font-bold text-brand-700">₦0</div>
+        <div class="text-xs text-gray-500">Min ₦10,000</div>
+      </div>
+      <div class="bg-white rounded-xl border p-5">
+        <div class="text-xs font-medium text-gray-500 uppercase">Tasks Done</div>
+        <div id="tasksDone" class="mt-1 text-xl font-bold">0</div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-xl border overflow-hidden">
+          <div class="px-5 py-4 border-b flex justify-between items-center">
+            <h2 class="font-semibold">Your Tasks</h2>
+            <span class="text-xs text-gray-500">₦500 each</span>
+          </div>
+          <div id="tasks" class="divide-y"></div>
+        </div>
+      </div>
+      <div class="space-y-6">
+        <div class="bg-white rounded-xl border p-5">
+          <h2 class="font-semibold mb-3">Referral Code</h2>
+          <div class="flex gap-2">
+            <input id="refCode" readonly class="flex-1 bg-gray-50 border rounded-lg px-3 py-2 text-sm font-mono" />
+            <button onclick="copyRef()" class="bg-brand-600 text-white text-sm font-medium px-4 py-2 rounded-lg">Copy</button>
+          </div>
+          <p class="text-xs text-gray-500 mt-3">Premium ₦1k • Silver ₦2k • Gold ₦3k</p>
+        </div>
+        <div class="bg-white rounded-xl border p-5">
+          <h2 class="font-semibold mb-3">Withdraw</h2>
+          <button onclick="withdraw('task')" class="w-full text-left px-4 py-3 rounded-lg border hover:border-brand-400 mb-2 text-sm">
+            <div class="font-medium">Task Wallet</div>
+            <div class="text-xs text-gray-500">Min ₦50,000</div>
+          </button>
+          <button onclick="withdraw('referral')" class="w-full text-left px-4 py-3 rounded-lg border hover:border-brand-400 text-sm">
+            <div class="font-medium">Referral Wallet</div>
+            <div class="text-xs text-gray-500">Min ₦10,000</div>
+          </button>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 text-sm">
+          <div class="font-semibold text-amber-900">Monthly Fee ₦5,000</div>
+          <p class="mt-1 text-amber-800/90">Deducted every month from active accounts.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('zbyte_token');
+    if (!token) location.href = '/login.html';
+
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+    }
+
+    function naira(n) { return '₦' + Number(n).toLocaleString('en-NG'); }
+
+    async function load() {
+      const res = await fetch('/api/dashboard', { headers: authHeaders() });
+      if (res.status === 401) { logout(); return; }
+      const data = await res.json();
+      const u = data.user;
+
+      document.getElementById('userName').textContent = u.fullName;
+      document.getElementById('greeting').textContent = u.fullName.split(' ')[0];
+      document.getElementById('tier').textContent = u.tier || 'None';
+      document.getElementById('taskBal').textContent = naira(u.taskBalance);
+      document.getElementById('refBal').textContent = naira(u.referralBalance);
+      document.getElementById('tasksDone').textContent = u.tasksCompleted;
+      document.getElementById('refCode').value = u.referralCode;
+
+      if (u.feePending) document.getElementById('feeBanner').classList.remove('hidden');
+      else document.getElementById('feeBanner').classList.add('hidden');
+
+      const tasksEl = document.getElementById('tasks');
+      if (!u.tier) {
+        tasksEl.innerHTML = '<div class="px-5 py-6 text-sm text-gray-500">No active membership. Complete payment first.</div>';
+        return;
+      }
+      tasksEl.innerHTML = data.tasks.map(t => {
+        const done = t.status === 'approved';
+        return `
+          <div class="px-5 py-4 flex items-start gap-4 ${done ? 'opacity-60' : ''}">
+            <div class="w-10 h-10 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold shrink-0">
+              ${t.type === 'survey' ? 'S' : t.type === 'form' ? 'F' : 'P'}
+            </div>
+            <div class="flex-1">
+              <div class="font-medium text-sm">${t.title}</div>
+              <div class="text-xs text-gray-500 mt-0.5">${t.description}</div>
+              <div class="text-xs text-brand-700 font-medium mt-1">₦500</div>
+            </div>
+            <div>
+              ${done
+                ? '<span class="text-xs font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-full">Done</span>'
+                : u.feePending
+                  ? '<span class="text-xs text-gray-400">Locked</span>'
+                  : `<button onclick="completeTask('${t.id}')" class="text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg">Start</button>`
+              }
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function completeTask(taskId) {
+      if (!confirm('Submit this task for approval? (Auto-approved in this version)')) return;
+      const res = await fetch('/api/tasks/complete', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ taskId })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || 'Failed');
+      alert('Task approved! +' + naira(data.reward));
+      load();
+    }
+
+    async function withdraw(type) {
+      const bankName = prompt('Bank name:');
+      if (!bankName) return;
+      const accountNumber = prompt('Account number:');
+      if (!accountNumber) return;
+      const accountName = prompt('Account name:');
+      if (!accountName) return;
+
+      const res = await fetch('/api/withdrawals', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ walletType: type, bankName, accountNumber, accountName })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || 'Failed');
+      alert('Withdrawal request submitted (status: pending). Admin will process it.');
+      load();
+    }
+
+    function copyRef() {
+      navigator.clipboard.writeText(document.getElementById('refCode').value);
+      alert('Copied!');
+    }
+
+    function logout() {
+      localStorage.removeItem('zbyte_token');
+      location.href = '/';
+    }
+
+    load();
+  </script>
+</body>
+</html>
