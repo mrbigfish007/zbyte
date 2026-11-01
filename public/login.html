@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – Zbyte</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#f0fdf4',100:'#dcfce7',500:'#22c55e',600:'#16a34a',700:'#15803d'}}}}}</script>
+  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');body{font-family:'Inter',system-ui,sans-serif}</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2">
+        <div class="w-9 h-9 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold">Z</div>
+        <span class="text-xl font-bold">Zbyte</span>
+      </a>
+      <a href="/register.html" class="text-sm font-medium text-gray-600">Need an account?</a>
+    </div>
+  </nav>
+  <div class="max-w-md mx-auto px-4 py-16">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold">Welcome back</h1>
+      <p class="mt-2 text-gray-600">Log in to your Zbyte account</p>
+    </div>
+    <form id="form" class="bg-white rounded-2xl border shadow-sm p-6 sm:p-8 space-y-5">
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Email or Phone</label>
+        <input name="identifier" required class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5">Password</label>
+        <input name="password" type="password" required class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" />
+      </div>
+      <button type="submit" id="btn" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3.5 rounded-xl">Log in</button>
+      <p id="error" class="text-red-600 text-sm hidden"></p>
+    </form>
+  </div>
+  <script>
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn');
+      const err = document.getElementById('error');
+      btn.disabled = true;
+      err.classList.add('hidden');
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identifier: e.target.identifier.value.trim(),
+            password: e.target.password.value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        localStorage.setItem('zbyte_token', data.token);
+        location.href = '/dashboard.html';
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.classList.remove('hidden');
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
