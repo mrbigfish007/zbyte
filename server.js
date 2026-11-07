@@ -1,550 +1,321 @@
 /**
- * Zbyte Full Backend Server
- * -------------------------
- * Pure Node.js (no extra packages required).
- * Run: node server.js
- * Then open http://localhost:3000
- *
- * Production upgrades:
- * - Replace lib/db.js with Prisma + PostgreSQL
- * - Add real Paystack secret key in env
- * - Put behind HTTPS + proper session/JWT library
- * - Add rate limiting, input sanitization, audit logs
+ * Zbyte Full Backend Server - Paystack Integrated
  */
-
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const crypto = require('crypto');
+const https = require('https');
 const db = require('./lib/db');
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'zbyte-dev-secret-change-me-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'zbyte-secret-key-change-me';
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || '';
+const PAYSTACK_PUBLIC_KEY = process.env.PAYSTACK_PUBLIC_KEY || '';
 
-// ---------- Helpers ----------
 function send(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   });
   res.end(JSON.stringify(data));
 }
 
-function parseBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => { body += chunk; if (body.length > 1e6) reject(new Error('Body too large')); });
-    req.on('end', () => {
-      try { resolve(body ? JSON.parse(body) : {}); }
-      catch (e) { reject(e); }
-    });
-  });
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password + 'zbyte-salt-v1').digest('hex');
 }
 
-function createToken(userId) {
-  const payload = Buffer.from(JSON.stringify({ userId, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 })).toString('base64');
-  const sig = crypto.createHmac('sha256', JWT_SECRET).update(payload).digest('hex');
-  return payload + '.' + sig;
+function createToken(user) {
+  const payload = JSON.stringify({
+    id: user.id,
+    email: user.email,
+    isAdmin: user.isAdmin || false,
+    exp: Date.now() + 7 * 24 * 60 * 60 * 1000
+  });
+  return Buffer.from(payload).toString('base64');
 }
 
 function verifyToken(token) {
-  if (!token) return null;
-  const [payload, sig] = token.split('.');
-  if (!payload || !sig) return null;
-  const expected = crypto.createHmac('sha256', JWT_SECRET).update(payload).digest('hex');
-  if (sig !== expected) return null;
   try {
-    const data = JSON.parse(Buffer.from(payload, 'base64').toString());
+    const data = JSON.parse(Buffer.from(token, 'base64').toString());
     if (data.exp < Date.now()) return null;
-    return data.userId;
-  } catch { return null; }
+    return data;
+  } catch (e) {
+    return null;
+  }
 }
 
 function getAuthUser(req) {
-  const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  const userId = verifyToken(token);
-  if (!userId) return null;
-  const data = db.read();
-  return data.users.find(u => u.id === userId) || null;
+  const auth = req.headers['authorization'] || '';
+  const token = auth.replace('Bearer ', '');
+  if (!token) return null;
+  const data = verifyToken(token);
+  if (!data) return null;
+  return db.getUserById(data.id);
 }
 
-function requireAuth(req, res) {
-  const user = getAuthUser(req);
-  if (!user) {
-    send(res, 401, { error: 'Unauthorized' });
-    return null;
-  }
-  return user;
-}
-
-function requireAdmin(req, res) {
-  const user = requireAuth(req, res);
-  if (!user) return null;
-  if (user.role !== 'admin') {
-    send(res, 403, { error: 'Admin only' });
-    return null;
-  }
-  return user;
-}
-
-// ---------- Static file server ----------
-function serveStatic(req, res, filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  const types = {
-    '.html': 'text/html',
-    '.js': 'application/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon'
-  };
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      res.writeHead(404);
-      res.end('Not found');
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': types[ext] || 'application/octet-stream' });
-    res.end(content);
+function parseBody(req) {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body || '{}'));
+      } catch (e) {
+        resolve({});
+      }
+    });
   });
 }
 
-// ---------- API Routes ----------
-async function handleApi(req, res, pathname) {
-  const method = req.method;
-  const data = db.read();
-
-  // CORS preflight
-  if (method === 'OPTIONS') {
-    send(res, 204, {});
-    return;
-  }
-
-  // ---- Auth ----
-  if (pathname === '/api/auth/register' && method === 'POST') {
-    const body = await parseBody(req);
-    const { fullName, email, phone, password, tier, referralCode } = body;
-    if (!fullName || !email || !phone || !password || !tier) {
-      return send(res, 400, { error: 'Missing required fields' });
-    }
-    if (!['premium', 'silver', 'gold'].includes(tier)) {
-      return send(res, 400, { error: 'Invalid tier' });
-    }
-    if (data.users.find(u => u.email === email || u.phone === phone)) {
-      return send(res, 409, { error: 'Email or phone already registered' });
-    }
-
-    const settings = data.settings;
-    const price = settings.membershipPrices[tier];
-    const userId = db.uuid();
-    const myCode = db.generateReferralCode();
-
-    // Find referrer
-    let referredBy = null;
-    if (referralCode) {
-      const ref = data.users.find(u => u.referralCode === referralCode.toUpperCase());
-      if (ref) referredBy = ref.id;
-    }
-
-    const user = {
-      id: userId,
-      fullName,
-      email: email.toLowerCase(),
-      phone,
-      passwordHash: db.hashPassword(password),
-      referralCode: myCode,
-      referredBy,
-      tier: null,                // set after successful payment
-      membershipPaidAt: null,
-      role: data.users.length === 0 ? 'admin' : 'user', // first user is admin
-      taskBalance: 0,
-      referralBalance: 0,
-      tasksCompleted: 0,
-      feePending: false,
-      feeOwed: 0,
-      kycStatus: 'none',
-      isActive: true,
-      createdAt: new Date().toISOString()
-    };
-
-    data.users.push(user);
-
-    // Create pending membership payment transaction
-    const txId = db.uuid();
-    data.transactions.push({
-      id: txId,
-      userId,
-      type: 'membership_payment',
-      amount: price,
-      status: 'pending',
-      tier,
-      reference: 'ZB-MEM-' + Date.now(),
-      createdAt: new Date().toISOString()
-    });
-
-    db.write(data);
-
-    // In production: call Paystack initialize here and return authorization_url
-    // For now we return a mock payment URL that the frontend will "complete"
-    return send(res, 201, {
-      message: 'Account created. Complete payment to activate membership.',
-      userId,
-      payment: {
-        amount: price,
-        reference: 'ZB-MEM-' + Date.now(),
-        // Real Paystack would return authorization_url
-        mockPayUrl: `/pay.html?ref=${txId}&amount=${price}&tier=${tier}`
-      },
-      token: createToken(userId)
-    });
-  }
-
-  if (pathname === '/api/auth/login' && method === 'POST') {
-    const body = await parseBody(req);
-    const { identifier, password } = body;
-    const user = data.users.find(u =>
-      u.email === (identifier || '').toLowerCase() || u.phone === identifier
-    );
-    if (!user || user.passwordHash !== db.hashPassword(password || '')) {
-      return send(res, 401, { error: 'Invalid credentials' });
-    }
-    return send(res, 200, {
-      token: createToken(user.id),
-      user: publicUser(user)
-    });
-  }
-
-  if (pathname === '/api/auth/me' && method === 'GET') {
-    const user = requireAuth(req, res);
-    if (!user) return;
-    return send(res, 200, { user: publicUser(user) });
-  }
-
-  // ---- Payment (mock + Paystack-ready) ----
-  if (pathname === '/api/payments/confirm' && method === 'POST') {
-    // This endpoint is called after mock payment or after Paystack webhook
-    const body = await parseBody(req);
-    const { reference, userId } = body;
-    const user = data.users.find(u => u.id === userId);
-    if (!user) return send(res, 404, { error: 'User not found' });
-
-    const tx = data.transactions.find(t => t.id === reference || t.reference === reference);
-    if (!tx || tx.status === 'completed') {
-      return send(res, 400, { error: 'Invalid or already completed payment' });
-    }
-
-    // Activate membership
-    user.tier = tx.tier;
-    user.membershipPaidAt = new Date().toISOString();
-    tx.status = 'completed';
-    tx.completedAt = new Date().toISOString();
-
-    // Pay referral commission if any
-    if (user.referredBy) {
-      const referrer = data.users.find(u => u.id === user.referredBy);
-      if (referrer) {
-        const commission = data.settings.referralCommissions[tx.tier] || 0;
-        referrer.referralBalance = (referrer.referralBalance || 0) + commission;
-        data.referrals.push({
-          id: db.uuid(),
-          referrerId: referrer.id,
-          referredUserId: user.id,
-          tier: tx.tier,
-          commission,
-          status: 'paid',
-          paidAt: new Date().toISOString(),
-          createdAt: new Date().toISOString()
-        });
-        data.transactions.push({
-          id: db.uuid(),
-          userId: referrer.id,
-          type: 'referral_commission',
-          amount: commission,
-          status: 'completed',
-          description: `Commission for ${tx.tier} referral`,
-          createdAt: new Date().toISOString()
-        });
+function paystackRequest(method, apiPath, data) {
+  return new Promise((resolve, reject) => {
+    const postData = data ? JSON.stringify(data) : null;
+    const options = {
+      hostname: 'api.paystack.co',
+      port: 443,
+      path: apiPath,
+      method: method,
+      headers: {
+        'Authorization': 'Bearer ' + PAYSTACK_SECRET_KEY,
+        'Content-Type': 'application/json'
       }
-    }
-
-    db.write(data);
-    return send(res, 200, { message: 'Payment confirmed. Membership activated.', user: publicUser(user) });
-  }
-
-  // ---- Dashboard data ----
-  if (pathname === '/api/dashboard' && method === 'GET') {
-    const user = requireAuth(req, res);
-    if (!user) return;
-    const settings = data.settings;
-    const limit = user.tier ? settings.taskLimits[user.tier] : 0;
-    const myUserTasks = data.userTasks.filter(ut => ut.userId === user.id);
-    const availableTasks = data.tasks.filter(t => t.active).slice(0, limit);
-
-    return send(res, 200, {
-      user: publicUser(user),
-      settings: {
-        monthlyFee: settings.monthlyFee,
-        withdrawalMinTask: settings.withdrawalMinTask,
-        withdrawalMinReferral: settings.withdrawalMinReferral
-      },
-      tasks: availableTasks.map(t => {
-        const ut = myUserTasks.find(x => x.taskId === t.id);
-        return { ...t, status: ut ? ut.status : 'available' };
-      }),
-      referralsCount: data.referrals.filter(r => r.referrerId === user.id).length
-    });
-  }
-
-  // ---- Complete a task ----
-  if (pathname === '/api/tasks/complete' && method === 'POST') {
-    const user = requireAuth(req, res);
-    if (!user) return;
-    if (user.feePending) return send(res, 403, { error: 'Account restricted: monthly fee pending' });
-    if (!user.tier) return send(res, 403, { error: 'No active membership' });
-
-    const body = await parseBody(req);
-    const { taskId, proof } = body;
-    const task = data.tasks.find(t => t.id === taskId && t.active);
-    if (!task) return send(res, 404, { error: 'Task not found' });
-
-    const limit = data.settings.taskLimits[user.tier];
-    const completedCount = data.userTasks.filter(ut => ut.userId === user.id && ut.status === 'approved').length;
-    if (completedCount >= limit) {
-      return send(res, 400, { error: 'You have reached your task limit for this membership' });
-    }
-    if (data.userTasks.find(ut => ut.userId === user.id && ut.taskId === taskId && ut.status !== 'rejected')) {
-      return send(res, 400, { error: 'Task already submitted' });
-    }
-
-    // Auto-approve for prototype speed (in production: status = 'submitted' and admin reviews)
-    const ut = {
-      id: db.uuid(),
-      userId: user.id,
-      taskId,
-      status: 'approved',
-      proof: proof || null,
-      submittedAt: new Date().toISOString(),
-      reviewedAt: new Date().toISOString()
     };
-    data.userTasks.push(ut);
+    if (postData) options.headers['Content-Length'] = Buffer.byteLength(postData);
 
-    user.taskBalance = (user.taskBalance || 0) + task.reward;
-    user.tasksCompleted = (user.tasksCompleted || 0) + 1;
-
-    data.transactions.push({
-      id: db.uuid(),
-      userId: user.id,
-      type: 'task_reward',
-      amount: task.reward,
-      status: 'completed',
-      description: `Reward for task: ${task.title}`,
-      createdAt: new Date().toISOString()
-    });
-
-    db.write(data);
-    return send(res, 200, { message: 'Task approved', reward: task.reward, newBalance: user.taskBalance });
-  }
-
-  // ---- Withdraw ----
-  if (pathname === '/api/withdrawals' && method === 'POST') {
-    const user = requireAuth(req, res);
-    if (!user) return;
-    if (user.feePending) return send(res, 403, { error: 'Withdrawals blocked while fee is pending' });
-
-    const body = await parseBody(req);
-    const { walletType, amount, bankName, accountNumber, accountName } = body;
-    if (!['task', 'referral'].includes(walletType)) {
-      return send(res, 400, { error: 'Invalid wallet type' });
-    }
-    const min = walletType === 'task' ? data.settings.withdrawalMinTask : data.settings.withdrawalMinReferral;
-    const balance = walletType === 'task' ? user.taskBalance : user.referralBalance;
-    const withdrawAmount = amount || balance;
-
-    if (withdrawAmount < min) {
-      return send(res, 400, { error: `Minimum withdrawal is ₦${min.toLocaleString()}` });
-    }
-    if (withdrawAmount > balance) {
-      return send(res, 400, { error: 'Insufficient balance' });
-    }
-    if (!bankName || !accountNumber || !accountName) {
-      return send(res, 400, { error: 'Bank details required' });
-    }
-
-    // Deduct immediately (in production you may hold until admin approves)
-    if (walletType === 'task') user.taskBalance -= withdrawAmount;
-    else user.referralBalance -= withdrawAmount;
-
-    const w = {
-      id: db.uuid(),
-      userId: user.id,
-      walletType,
-      amount: withdrawAmount,
-      bankName,
-      accountNumber,
-      accountName,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-    data.withdrawals.push(w);
-    data.transactions.push({
-      id: db.uuid(),
-      userId: user.id,
-      type: 'withdrawal',
-      amount: -withdrawAmount,
-      status: 'pending',
-      description: `Withdrawal from ${walletType} wallet`,
-      createdAt: new Date().toISOString()
-    });
-
-    db.write(data);
-    return send(res, 201, { message: 'Withdrawal request submitted', withdrawal: w });
-  }
-
-  // ---- Admin routes ----
-  if (pathname === '/api/admin/stats' && method === 'GET') {
-    const admin = requireAdmin(req, res);
-    if (!admin) return;
-    return send(res, 200, {
-      totalUsers: data.users.length,
-      activeMemberships: data.users.filter(u => u.tier).length,
-      pendingWithdrawals: data.withdrawals.filter(w => w.status === 'pending').length,
-      totalTaskPaid: data.transactions.filter(t => t.type === 'task_reward' && t.status === 'completed').reduce((s, t) => s + t.amount, 0),
-      totalReferralPaid: data.transactions.filter(t => t.type === 'referral_commission' && t.status === 'completed').reduce((s, t) => s + t.amount, 0)
-    });
-  }
-
-  if (pathname === '/api/admin/users' && method === 'GET') {
-    const admin = requireAdmin(req, res);
-    if (!admin) return;
-    return send(res, 200, { users: data.users.map(publicUser) });
-  }
-
-  if (pathname === '/api/admin/withdrawals' && method === 'GET') {
-    const admin = requireAdmin(req, res);
-    if (!admin) return;
-    return send(res, 200, { withdrawals: data.withdrawals });
-  }
-
-  if (pathname.startsWith('/api/admin/withdrawals/') && method === 'PATCH') {
-    const admin = requireAdmin(req, res);
-    if (!admin) return;
-    const id = pathname.split('/').pop();
-    const body = await parseBody(req);
-    const w = data.withdrawals.find(x => x.id === id);
-    if (!w) return send(res, 404, { error: 'Not found' });
-    w.status = body.status || w.status;
-    w.adminNote = body.adminNote || '';
-    w.processedAt = new Date().toISOString();
-    db.write(data);
-    return send(res, 200, { withdrawal: w });
-  }
-
-  if (pathname === '/api/admin/run-monthly-fees' && method === 'POST') {
-    // Manual trigger for demo (in production: cron job)
-    const admin = requireAdmin(req, res);
-    if (!admin) return;
-    let charged = 0;
-    data.users.forEach(u => {
-      if (!u.tier || !u.isActive) return;
-      const fee = data.settings.monthlyFee;
-      const totalBal = (u.taskBalance || 0) + (u.referralBalance || 0);
-      if (totalBal >= fee) {
-        // Deduct from referral first, then task
-        let remaining = fee;
-        if (u.referralBalance >= remaining) {
-          u.referralBalance -= remaining;
-        } else {
-          remaining -= u.referralBalance;
-          u.referralBalance = 0;
-          u.taskBalance = Math.max(0, (u.taskBalance || 0) - remaining);
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(body));
+        } catch (e) {
+          reject(e);
         }
-        u.feePending = false;
-        u.feeOwed = 0;
-        charged++;
-        data.transactions.push({
-          id: db.uuid(),
-          userId: u.id,
-          type: 'monthly_fee',
-          amount: -fee,
-          status: 'completed',
-          createdAt: new Date().toISOString()
-        });
-      } else {
-        u.feePending = true;
-        u.feeOwed = fee - totalBal;
-        // Zero out wallets
-        u.taskBalance = 0;
-        u.referralBalance = 0;
-      }
+      });
     });
-    db.write(data);
-    return send(res, 200, { message: `Monthly fees processed. ${charged} users charged successfully.` });
-  }
-
-  // Fallback
-  send(res, 404, { error: 'API route not found' });
+    req.on('error', reject);
+    if (postData) req.write(postData);
+    req.end();
+  });
 }
 
-function publicUser(u) {
-  return {
-    id: u.id,
-    fullName: u.fullName,
-    email: u.email,
-    phone: u.phone,
-    referralCode: u.referralCode,
-    tier: u.tier,
-    membershipPaidAt: u.membershipPaidAt,
-    role: u.role,
-    taskBalance: u.taskBalance || 0,
-    referralBalance: u.referralBalance || 0,
-    tasksCompleted: u.tasksCompleted || 0,
-    feePending: !!u.feePending,
-    feeOwed: u.feeOwed || 0,
-    kycStatus: u.kycStatus,
-    isActive: u.isActive,
-    createdAt: u.createdAt
-  };
-}
-
-// ---------- Main server ----------
 const server = http.createServer(async (req, res) => {
   const parsed = url.parse(req.url, true);
-  let pathname = parsed.pathname;
+  const pathname = parsed.pathname;
 
-  try {
-    if (pathname.startsWith('/api/')) {
-      await handleApi(req, res, pathname);
-      return;
-    }
-
-    // Static files
-    if (pathname === '/') pathname = '/index.html';
-    if (pathname === '/admin' || pathname === '/admin/') pathname = '/admin/index.html';
-
-    const publicPath = path.join(__dirname, 'public', pathname);
-    const adminPath = path.join(__dirname, 'admin', pathname.replace(/^\/admin/, '') || 'index.html');
-
-    if (pathname.startsWith('/admin')) {
-      serveStatic(req, res, path.join(__dirname, 'admin', pathname.slice(6) || 'index.html'));
-    } else {
-      serveStatic(req, res, publicPath);
-    }
-  } catch (err) {
-    console.error(err);
-    send(res, 500, { error: 'Internal server error', detail: err.message });
+  if (req.method === 'OPTIONS') {
+    return send(res, 200, {});
   }
+
+  // Static files
+  if (req.method === 'GET' && !pathname.startsWith('/api')) {
+    let filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
+    if (pathname.startsWith('/admin')) {
+      filePath = path.join(__dirname, 'admin', pathname === '/admin' || pathname === '/admin/' ? 'index.html' : pathname.replace('/admin', ''));
+    }
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath);
+      const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg' };
+      res.writeHead(200, { 'Content-Type': types[ext] || 'text/plain' });
+      return fs.createReadStream(filePath).pipe(res);
+    }
+    return send(res, 404, { error: 'Not found' });
+  }
+
+  // ========== AUTH ==========
+  if (pathname === '/api/auth/register' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const { name, email, phone, password, tier, referralCode } = body;
+    if (!name || !email || !password || !tier) return send(res, 400, { error: 'Missing fields' });
+
+    if (db.getUserByEmail(email)) return send(res, 400, { error: 'Email already registered' });
+
+    const tiers = { premium: 10000, silver: 20000, gold: 30000 };
+    const amount = tiers[tier.toLowerCase()];
+    if (!amount) return send(res, 400, { error: 'Invalid tier' });
+
+    const user = db.createUser({
+      name,
+      email,
+      phone: phone || '',
+      password: hashPassword(password),
+      tier: tier.toLowerCase(),
+      isAdmin: false,
+      membershipActive: false,
+      taskWallet: 0,
+      referralWallet: 0,
+      tasksCompleted: 0,
+      referralCode: Math.random().toString(36).substring(2, 8).toUpperCase()
+    });
+
+    // Handle referral
+    if (referralCode) {
+      const referrer = db.getUserByReferralCode(referralCode);
+      if (referrer) {
+        db.addReferral(referrer.id, user.id);
+      }
+    }
+
+    // Initialize Paystack payment
+    try {
+      const paystackRes = await paystackRequest('POST', '/transaction/initialize', {
+        email: email,
+        amount: amount * 100, // Paystack uses kobo
+        callback_url: `https://zbyte-production.up.railway.app/api/payment/callback?userId=\( {user.id}&tier= \){tier}`,
+        metadata: {
+          userId: user.id,
+          tier: tier,
+          name: name
+        }
+      });
+
+      if (paystackRes.status && paystackRes.data) {
+        return send(res, 200, {
+          success: true,
+          user: { id: user.id, name: user.name, email: user.email },
+          paymentUrl: paystackRes.data.authorization_url,
+          reference: paystackRes.data.reference
+        });
+      } else {
+        return send(res, 400, { error: 'Could not initialize payment', details: paystackRes.message });
+      }
+    } catch (err) {
+      return send(res, 500, { error: 'Payment initialization failed', details: err.message });
+    }
+  }
+
+  if (pathname === '/api/auth/login' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const user = db.getUserByEmail(body.email);
+    if (!user || user.password !== hashPassword(body.password)) {
+      return send(res, 401, { error: 'Invalid email or password' });
+    }
+    const token = createToken(user);
+    return send(res, 200, {
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        tier: user.tier,
+        isAdmin: user.isAdmin,
+        membershipActive: user.membershipActive,
+        taskWallet: user.taskWallet,
+        referralWallet: user.referralWallet,
+        tasksCompleted: user.tasksCompleted,
+        referralCode: user.referralCode
+      }
+    });
+  }
+
+  // ========== PAYMENT CALLBACK ==========
+  if (pathname === '/api/payment/callback' && req.method === 'GET') {
+    const { reference, userId, tier } = parsed.query;
+    if (!reference) return send(res, 400, { error: 'No reference' });
+
+    try {
+      const verify = await paystackRequest('GET', `/transaction/verify/${reference}`);
+      if (verify.status && verify.data.status === 'success') {
+        const user = db.getUserById(userId);
+        if (user) {
+          db.updateUser(userId, {
+            membershipActive: true,
+            tier: (tier || user.tier).toLowerCase()
+          });
+
+          // Credit referrer if any
+          const referral = db.getReferralByNewUser(userId);
+          if (referral) {
+            const bonuses = { premium: 1000, silver: 2000, gold: 3000 };
+            const bonus = bonuses[user.tier] || 1000;
+            db.addToWallet(referral.referrerId, 'referral', bonus);
+          }
+        }
+        // Redirect to dashboard
+        res.writeHead(302, { Location: '/dashboard.html?paid=1' });
+        return res.end();
+      }
+    } catch (e) {}
+    res.writeHead(302, { Location: '/pay.html?error=1' });
+    return res.end();
+  }
+
+  // ========== USER ==========
+  if (pathname === '/api/user/me' && req.method === 'GET') {
+    const user = getAuthUser(req);
+    if (!user) return send(res, 401, { error: 'Unauthorized' });
+    return send(res, 200, {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      tier: user.tier,
+      isAdmin: user.isAdmin,
+      membershipActive: user.membershipActive,
+      taskWallet: user.taskWallet,
+      referralWallet: user.referralWallet,
+      tasksCompleted: user.tasksCompleted,
+      referralCode: user.referralCode
+    });
+  }
+
+  // ========== TASKS ==========
+  if (pathname === '/api/tasks' && req.method === 'GET') {
+    const user = getAuthUser(req);
+    if (!user) return send(res, 401, { error: 'Unauthorized' });
+    const tasks = db.getTasks();
+    return send(res, 200, tasks);
+  }
+
+  if (pathname === '/api/tasks/complete' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user) return send(res, 401, { error: 'Unauthorized' });
+    if (!user.membershipActive) return send(res, 403, { error: 'Membership not active' });
+
+    const body = await parseBody(req);
+    const result = db.completeTask(user.id, body.taskId);
+    if (!result.success) return send(res, 400, { error: result.message });
+    return send(res, 200, result);
+  }
+
+  // ========== ADMIN ==========
+  if (pathname === '/api/admin/users' && req.method === 'GET') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Admin only' });
+    const users = db.getAllUsers();
+    return send(res, 200, users);
+  }
+
+  if (pathname === '/api/admin/stats' && req.method === 'GET') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Admin only' });
+    return send(res, 200, db.getStats());
+  }
+
+  send(res, 404, { error: 'Not found' });
 });
 
 server.listen(PORT, () => {
-  console.log(`\n🚀 Zbyte server running at http://localhost:${PORT}`);
-  console.log(`   Web app:   http://localhost:${PORT}`);
-  console.log(`   Admin:     http://localhost:${PORT}/admin`);
-  console.log(`   API base:  http://localhost:${PORT}/api\n`);
-  console.log('First registered user automatically becomes admin.\n');
+  console.log('Zbyte server running on port ' + PORT);
+  // Seed default admin if not exists
+  if (!db.getUserByEmail('admin@zbyte.com.ng')) {
+    db.createUser({
+      name: 'MR BIG FSH',
+      email: 'admin@zbyte.com.ng',
+      phone: '',
+      password: hashPassword('admin'),
+      tier: 'gold',
+      isAdmin: true,
+      membershipActive: true,
+      taskWallet: 0,
+      referralWallet: 0,
+      tasksCompleted: 0,
+      referralCode: 'ADMIN01'
+    });
+    console.log('Default admin created: admin@zbyte.com.ng / admin');
+  }
 });
