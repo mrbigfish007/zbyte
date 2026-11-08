@@ -1,5 +1,5 @@
 /**
- * Zbyte Full Backend Server - Paystack Integrated
+ * Zbyte Full Backend Server - Paystack Integrated (Fixed Fields)
  */
 const http = require('http');
 const fs = require('fs');
@@ -115,44 +115,55 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && !pathname.startsWith('/api')) {
     let filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
     if (pathname.startsWith('/admin')) {
-      filePath = path.join(__dirname, 'admin', pathname === '/admin' || pathname === '/admin/' ? 'index.html' : pathname.replace('/admin', ''));
+      filePath = path.join(__dirname, 'admin', (pathname === '/admin' || pathname === '/admin/') ? 'index.html' : pathname.replace('/admin', ''));
     }
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const ext = path.extname(filePath);
-      const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg' };
+      const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json' };
       res.writeHead(200, { 'Content-Type': types[ext] || 'text/plain' });
       return fs.createReadStream(filePath).pipe(res);
     }
     return send(res, 404, { error: 'Not found' });
   }
 
-  // ========== AUTH ==========
+  // ========== REGISTER ==========
   if (pathname === '/api/auth/register' && req.method === 'POST') {
     const body = await parseBody(req);
-    const { name, email, phone, password, tier, referralCode } = body;
-    if (!name || !email || !password || !tier) return send(res, 400, { error: 'Missing fields' });
 
-    if (db.getUserByEmail(email)) return send(res, 400, { error: 'Email already registered' });
+    const name = body.name || body.fullName || body.fullname || (body.email ? body.email.split('@')[0] : 'User');
+    const email = body.email || '';
+    const phone = body.phone || body.phoneNumber || '';
+    const password = body.password || '';
+    const tier = (body.tier || body.membership || body.plan || '').toLowerCase();
+    const referralCode = body.referralCode || body.referral || body.ref || '';
+
+    if (!email || !password || !tier) {
+      return send(res, 400, { error: 'Missing fields' });
+    }
+
+    if (db.getUserByEmail(email)) {
+      return send(res, 400, { error: 'Email already registered' });
+    }
 
     const tiers = { premium: 10000, silver: 20000, gold: 30000 };
-    const amount = tiers[tier.toLowerCase()];
-    if (!amount) return send(res, 400, { error: 'Invalid tier' });
+    const amount = tiers[tier];
+    if (!amount) {
+      return send(res, 400, { error: 'Invalid membership tier' });
+    }
 
     const user = db.createUser({
       name,
       email,
-      phone: phone || '',
+      phone,
       password: hashPassword(password),
-      tier: tier.toLowerCase(),
+      tier,
       isAdmin: false,
       membershipActive: false,
       taskWallet: 0,
       referralWallet: 0,
-      tasksCompleted: 0,
-      referralCode: Math.random().toString(36).substring(2, 8).toUpperCase()
+      tasksCompleted: 0
     });
 
-    // Handle referral
     if (referralCode) {
       const referrer = db.getUserByReferralCode(referralCode);
       if (referrer) {
@@ -160,11 +171,10 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // Initialize Paystack payment
     try {
       const paystackRes = await paystackRequest('POST', '/transaction/initialize', {
         email: email,
-        amount: amount * 100, // Paystack uses kobo
+        amount: amount * 100,
         callback_url: `https://zbyte-production.up.railway.app/api/payment/callback?userId=\( {user.id}&tier= \){tier}`,
         metadata: {
           userId: user.id,
@@ -173,7 +183,7 @@ const server = http.createServer(async (req, res) => {
         }
       });
 
-      if (paystackRes.status && paystackRes.data) {
+      if (paystackRes.status && paystackRes.data && paystackRes.data.authorization_url) {
         return send(res, 200, {
           success: true,
           user: { id: user.id, name: user.name, email: user.email },
@@ -181,13 +191,14 @@ const server = http.createServer(async (req, res) => {
           reference: paystackRes.data.reference
         });
       } else {
-        return send(res, 400, { error: 'Could not initialize payment', details: paystackRes.message });
+        return send(res, 400, { error: 'Could not start payment', details: paystackRes.message || paystackRes });
       }
     } catch (err) {
-      return send(res, 500, { error: 'Payment initialization failed', details: err.message });
+      return send(res, 500, { error: 'Payment failed to start', details: err.message });
     }
   }
 
+  // ========== LOGIN ==========
   if (pathname === '/api/auth/login' && req.method === 'POST') {
     const body = await parseBody(req);
     const user = db.getUserByEmail(body.email);
@@ -216,31 +227,31 @@ const server = http.createServer(async (req, res) => {
   // ========== PAYMENT CALLBACK ==========
   if (pathname === '/api/payment/callback' && req.method === 'GET') {
     const { reference, userId, tier } = parsed.query;
-    if (!reference) return send(res, 400, { error: 'No reference' });
+    if (!reference) {
+      res.writeHead(302, { Location: '/pay.html?error=1' });
+      return res.end();
+    }
 
     try {
       const verify = await paystackRequest('GET', `/transaction/verify/${reference}`);
-      if (verify.status && verify.data.status === 'success') {
-        const user = db.getUserById(userId);
-        if (user) {
-          db.updateUser(userId, {
-            membershipActive: true,
-            tier: (tier || user.tier).toLowerCase()
-          });
+      if (verify.status && verify.data && verify.data.status === 'success') {
+        db.updateUser(userId, {
+          membershipActive: true,
+          tier: (tier || 'premium').toLowerCase()
+        });
 
-          // Credit referrer if any
-          const referral = db.getReferralByNewUser(userId);
-          if (referral) {
-            const bonuses = { premium: 1000, silver: 2000, gold: 3000 };
-            const bonus = bonuses[user.tier] || 1000;
-            db.addToWallet(referral.referrerId, 'referral', bonus);
-          }
+        const referral = db.getReferralByNewUser(userId);
+        if (referral) {
+          const bonuses = { premium: 1000, silver: 2000, gold: 3000 };
+          const bonus = bonuses[(tier || 'premium').toLowerCase()] || 1000;
+          db.addToWallet(referral.referrerId, 'referral', bonus);
         }
-        // Redirect to dashboard
+
         res.writeHead(302, { Location: '/dashboard.html?paid=1' });
         return res.end();
       }
     } catch (e) {}
+
     res.writeHead(302, { Location: '/pay.html?error=1' });
     return res.end();
   }
@@ -267,8 +278,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/tasks' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
-    const tasks = db.getTasks();
-    return send(res, 200, tasks);
+    return send(res, 200, db.getTasks());
   }
 
   if (pathname === '/api/tasks/complete' && req.method === 'POST') {
@@ -286,8 +296,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/admin/users' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user || !user.isAdmin) return send(res, 403, { error: 'Admin only' });
-    const users = db.getAllUsers();
-    return send(res, 200, users);
+    return send(res, 200, db.getAllUsers());
   }
 
   if (pathname === '/api/admin/stats' && req.method === 'GET') {
@@ -301,7 +310,8 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log('Zbyte server running on port ' + PORT);
-  // Seed default admin if not exists
+
+  // Create default admin if not exists
   if (!db.getUserByEmail('admin@zbyte.com.ng')) {
     db.createUser({
       name: 'MR BIG FSH',
@@ -316,6 +326,6 @@ server.listen(PORT, () => {
       tasksCompleted: 0,
       referralCode: 'ADMIN01'
     });
-    console.log('Default admin created: admin@zbyte.com.ng / admin');
+    console.log('Default admin created');
   }
 });
