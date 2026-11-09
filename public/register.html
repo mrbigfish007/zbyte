@@ -4,131 +4,130 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Register – Zbyte</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#f0fdf4',100:'#dcfce7',500:'#22c55e',600:'#16a34a',700:'#15803d'}}}}}</script>
-  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');body{font-family:'Inter',system-ui,sans-serif}</style>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; }
+    .container { max-width: 420px; margin: 40px auto; padding: 20px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    h1 { text-align: center; margin-bottom: 24px; font-size: 1.6rem; }
+    label { display: block; margin: 12px 0 6px; font-weight: 500; font-size: 0.95rem; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 1rem; }
+    .tier { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin: 8px 0; cursor: pointer; }
+    .tier.selected { border-color: #16a34a; background: #f0fdf4; }
+    .tier input { margin-right: 8px; }
+    button { width: 100%; background: #16a34a; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 1.05rem; font-weight: 600; margin-top: 16px; cursor: pointer; }
+    button:disabled { opacity: 0.6; }
+    .error { color: #dc2626; margin-top: 12px; font-size: 0.9rem; }
+    .footer { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #64748b; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <nav class="bg-white border-b">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2">
-        <div class="w-9 h-9 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold">Z</div>
-        <span class="text-xl font-bold">Zbyte</span>
-      </a>
-      <a href="/login.html" class="text-sm font-medium text-gray-600">Already have an account?</a>
-    </div>
-  </nav>
+<body>
+  <div class="container">
+    <h1>Create Account</h1>
 
-  <div class="max-w-xl mx-auto px-4 py-12">
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold">Create your account</h1>
-      <p class="mt-2 text-gray-600">Nigeria only • Real backend + payment flow</p>
+    <label>Full Name</label>
+    <input type="text" id="name" placeholder="Your full name" required />
+
+    <label>Phone (Nigeria)</label>
+    <input type="tel" id="phone" placeholder="080xxxxxxxx" required />
+
+    <label>Email</label>
+    <input type="email" id="email" placeholder="you@email.com" required />
+
+    <label>Password</label>
+    <input type="password" id="password" placeholder="Create a password" required />
+
+    <label>Referral Code (optional)</label>
+    <input type="text" id="referral" placeholder="Enter code if you have one" />
+
+    <label>Membership (one-time)</label>
+    <div class="tier" onclick="selectTier('premium')">
+      <input type="radio" name="tier" value="premium" /> Premium – ₦10,000 <small>(2 tasks)</small>
+    </div>
+    <div class="tier" onclick="selectTier('silver')">
+      <input type="radio" name="tier" value="silver" /> Silver – ₦20,000 <small>(4 tasks)</small>
+    </div>
+    <div class="tier" onclick="selectTier('gold')">
+      <input type="radio" name="tier" value="gold" /> Gold – ₦30,000 <small>(7 tasks)</small>
     </div>
 
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-8 text-sm">
-      <p class="font-semibold text-amber-900 mb-2">Before you continue:</p>
-      <ul class="space-y-1 text-amber-900/90">
-        <li>• Premium ₦10,000 → 2 tasks | Silver ₦20,000 → 4 tasks | Gold ₦30,000 → 7 tasks</li>
-        <li>• ₦500 per completed task</li>
-        <li>• Referral: ₦1,000 / ₦2,000 / ₦3,000</li>
-        <li>• Min withdrawal: Task ₦50,000 • Referral ₦10,000</li>
-        <li>• Monthly platform fee: <strong>₦5,000</strong> from every active account</li>
-      </ul>
-    </div>
+    <label style="font-size:0.85rem; display:flex; align-items:center; gap:8px; margin-top:16px;">
+      <input type="checkbox" id="agree" />
+      I am a Nigerian resident (18+), I understand the monthly ₦5,000 fee and withdrawal minima, and I agree to the Terms.
+    </label>
 
-    <form id="form" class="bg-white rounded-2xl border shadow-sm p-6 sm:p-8 space-y-5">
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Full Name</label>
-        <input name="fullName" required class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Phone (Nigeria)</label>
-        <input name="phone" required class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="08012345678" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Email</label>
-        <input name="email" type="email" required class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Password</label>
-        <input name="password" type="password" required minlength="6" class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Referral Code (optional)</label>
-        <input name="referralCode" class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-2">Membership (one-time)</label>
-        <div class="space-y-3">
-          <label class="flex items-center gap-3 p-4 border rounded-xl cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
-            <input type="radio" name="tier" value="premium" required />
-            <div><div class="font-semibold">Premium – ₦10,000</div><div class="text-xs text-gray-500">2 tasks</div></div>
-          </label>
-          <label class="flex items-center gap-3 p-4 border rounded-xl cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
-            <input type="radio" name="tier" value="silver" />
-            <div><div class="font-semibold">Silver – ₦20,000</div><div class="text-xs text-gray-500">4 tasks</div></div>
-          </label>
-          <label class="flex items-center gap-3 p-4 border rounded-xl cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
-            <input type="radio" name="tier" value="gold" />
-            <div><div class="font-semibold">Gold – ₦30,000</div><div class="text-xs text-gray-500">7 tasks</div></div>
-          </label>
-        </div>
-      </div>
-      <label class="flex items-start gap-3 text-sm">
-        <input type="checkbox" required class="mt-1" />
-        <span>I am a Nigerian resident (18+), I understand the monthly ₦5,000 fee and withdrawal minima, and I agree to the Terms.</span>
-      </label>
-      <button type="submit" id="btn" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3.5 rounded-xl">Create Account & Pay</button>
-      <p id="error" class="text-red-600 text-sm hidden"></p>
-    </form>
+    <button id="btn" onclick="register()">Create Account & Pay</button>
+    <div class="error" id="error"></div>
+
+    <div class="footer">
+      Zbyte – Complete tasks. Earn in Naira.
+    </div>
   </div>
 
   <script>
-    const params = new URLSearchParams(location.search);
-    const tier = params.get('tier');
-    if (tier) {
-      const r = document.querySelector(`input[value="${tier}"]`);
-      if (r) r.checked = true;
+    let selectedTier = '';
+
+    function selectTier(tier) {
+      selectedTier = tier;
+      document.querySelectorAll('.tier').forEach(el => el.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+      document.querySelector(`input[value="${tier}"]`).checked = true;
     }
 
-    document.getElementById('form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('btn');
-      const err = document.getElementById('error');
-      btn.disabled = true;
-      btn.textContent = 'Creating account...';
-      err.classList.add('hidden');
+    async function register() {
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const password = document.getElementById('password').value;
+      const referral = document.getElementById('referral').value.trim();
+      const agree = document.getElementById('agree').checked;
 
-      const form = e.target;
-      const body = {
-        fullName: form.fullName.value.trim(),
-        phone: form.phone.value.trim(),
-        email: form.email.value.trim(),
-        password: form.password.value,
-        referralCode: form.referralCode.value.trim() || null,
-        tier: form.tier.value
-      };
+      const errorEl = document.getElementById('error');
+      errorEl.textContent = '';
+
+      if (!name || !email || !password || !selectedTier) {
+        errorEl.textContent = 'Please fill name, email, password and choose a membership.';
+        return;
+      }
+      if (!agree) {
+        errorEl.textContent = 'You must agree to the terms.';
+        return;
+      }
+
+      const btn = document.getElementById('btn');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
 
       try {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify({
+            name,
+            email,
+            phone,
+            password,
+            tier: selectedTier,
+            referralCode: referral
+          })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Registration failed');
 
-        localStorage.setItem('zbyte_token', data.token);
-        localStorage.setItem('zbyte_userId', data.userId);
-        // Go to mock payment page
-        location.href = data.payment.mockPayUrl + '&userId=' + data.userId;
-      } catch (ex) {
-        err.textContent = ex.message;
-        err.classList.remove('hidden');
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Registration failed');
+        }
+
+        if (data.paymentUrl) {
+          window.location.href = data.paymentUrl;
+        } else {
+          throw new Error('No payment link received');
+        }
+      } catch (err) {
+        errorEl.textContent = err.message;
         btn.disabled = false;
         btn.textContent = 'Create Account & Pay';
       }
-    });
+    }
   </script>
 </body>
-</html>
+  </html>
