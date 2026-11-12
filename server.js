@@ -1,5 +1,5 @@
 /**
- * Zbyte Full Backend Server - Paystack Integrated (Admin Fixed)
+ * Zbyte Full Backend Server - Paystack Integrated (Login Fixed)
  */
 const http = require('http');
 const fs = require('fs');
@@ -198,10 +198,11 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // ========== LOGIN ==========
+  // ========== LOGIN (Fixed) ==========
   if (pathname === '/api/auth/login' && req.method === 'POST') {
     const body = await parseBody(req);
-    const user = db.getUserByEmail(body.email);
+    const email = body.email || body.identifier || '';
+    const user = db.getUserByEmail(email);
     if (!user || user.password !== hashPassword(body.password)) {
       return send(res, 401, { error: 'Invalid email or password' });
     }
