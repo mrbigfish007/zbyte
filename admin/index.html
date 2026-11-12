@@ -5,90 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin – Zbyte | MR BIG FSH</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');body{font-family:'Inter',system-ui,sans-serif}</style>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-  <nav class="bg-gray-900 text-white">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div>
-        <div class="font-bold text-lg">Zbyte Admin</div>
-        <div class="text-xs text-gray-400">Founder & CEO: MR BIG FSH (Orakwe Chinecherem Michael)</div>
-      </div>
-      <div class="flex gap-4 text-sm items-center">
-        <a href="/" class="text-gray-300 hover:text-white">View site</a>
-        <a href="/about.html" class="text-gray-300 hover:text-white">About</a>
-        <button onclick="logout()" class="text-red-400 hover:text-red-300">Logout</button>
-      </div>
+<body class="bg-gray-100">
+  <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+    <div>
+      <div class="text-xl font-bold">Zbyte Admin</div>
+      <div class="text-xs text-slate-400">Founder & CEO: MR BIG FSH (Orakwe Chinecherem Michael)</div>
     </div>
-  </nav>
+    <div class="flex gap-4 text-sm">
+      <a href="/" class="hover:underline">View site</a>
+      <a href="/about.html" class="hover:underline">About</a>
+      <button onclick="logout()" class="text-red-400 hover:underline">Logout</button>
+    </div>
+  </header>
 
-  <div class="max-w-7xl mx-auto px-4 py-8">
-    <div id="loginGate" class="bg-white rounded-xl p-8 max-w-md mx-auto shadow-sm">
-      <h1 class="text-xl font-bold mb-2">Admin Login</h1>
-      <p class="text-sm text-gray-600 mb-6">Only the Founder/Admin account can access this panel. The first registered user is automatically admin.</p>
-      <input id="adminEmail" placeholder="Email or phone" class="w-full border rounded-lg px-4 py-2.5 mb-3" />
-      <input id="adminPass" type="password" placeholder="Password" class="w-full border rounded-lg px-4 py-2.5 mb-4" />
-      <button onclick="adminLogin()" class="w-full bg-gray-900 text-white font-semibold py-3 rounded-lg">Login as Admin</button>
-      <p id="adminErr" class="text-red-600 text-sm mt-3 hidden"></p>
+  <!-- Login Gate -->
+  <div id="loginGate" class="max-w-md mx-auto mt-16 bg-white rounded-2xl p-8 shadow">
+    <h1 class="text-2xl font-bold mb-2">Admin Login</h1>
+    <p class="text-sm text-gray-600 mb-6">Only the Founder/Admin account can access this panel.</p>
+    <input id="adminEmail" type="email" placeholder="Email" class="w-full border rounded-lg px-4 py-3 mb-3" value="admin@zbyte.com.ng" />
+    <input id="adminPass" type="password" placeholder="Password" class="w-full border rounded-lg px-4 py-3 mb-4" />
+    <button onclick="adminLogin()" class="w-full bg-slate-900 text-white py-3 rounded-lg font-semibold">Login as Admin</button>
+    <div id="adminErr" class="text-red-600 text-sm mt-3 hidden"></div>
+  </div>
+
+  <!-- Admin Content -->
+  <div id="adminContent" class="hidden max-w-6xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-2">Dashboard</h1>
+    <p class="text-gray-600 mb-6">All members and activity</p>
+
+    <div class="flex gap-3 mb-6">
+      <button onclick="runMonthlyFees()" class="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium">Run Monthly Fees</button>
+      <button onclick="loadAll()" class="bg-white border px-4 py-2 rounded-lg">Refresh</button>
     </div>
 
-    <div id="adminContent" class="hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 class="text-2xl font-bold">Dashboard</h1>
-          <p class="text-sm text-gray-500">All members and activity</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button onclick="runFees()" class="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Run Monthly Fees</button>
-          <button onclick="loadAll()" class="bg-white border hover:bg-gray-50 text-sm font-medium px-4 py-2 rounded-lg">Refresh</button>
-        </div>
-      </div>
+    <div id="stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"></div>
 
-      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" id="stats"></div>
-
-      <div class="bg-white rounded-xl border p-4 mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <input id="searchInput" oninput="filterUsers()" placeholder="Search name, email, phone or referral code..." class="flex-1 border rounded-lg px-4 py-2 text-sm w-full" />
-        <select id="tierFilter" onchange="filterUsers()" class="border rounded-lg px-3 py-2 text-sm">
+    <div class="bg-white rounded-xl border mb-6">
+      <div class="p-4 border-b flex flex-col sm:flex-row gap-3">
+        <input id="search" oninput="filterUsers()" placeholder="Search name, email, phone or referral code..." class="flex-1 border rounded-lg px-4 py-2" />
+        <select id="tierFilter" onchange="filterUsers()" class="border rounded-lg px-3 py-2">
           <option value="">All tiers</option>
           <option value="premium">Premium</option>
           <option value="silver">Silver</option>
           <option value="gold">Gold</option>
-          <option value="none">No membership</option>
         </select>
-        <select id="statusFilter" onchange="filterUsers()" class="border rounded-lg px-3 py-2 text-sm">
+        <select id="statusFilter" onchange="filterUsers()" class="border rounded-lg px-3 py-2">
           <option value="">All status</option>
-          <option value="activated">Activated only</option>
-          <option value="fee_pending">Fee Pending</option>
+          <option value="active">Activated</option>
+          <option value="inactive">Not activated</option>
         </select>
       </div>
+      <div id="usersTable" class="overflow-x-auto"></div>
+    </div>
 
-      <div class="bg-white rounded-xl border overflow-hidden mb-8">
-        <div class="px-5 py-4 border-b flex items-center justify-between">
-          <h2 class="font-semibold">All Members</h2>
-          <span id="userCount" class="text-sm text-gray-500"></span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-left text-xs text-gray-500 uppercase">
-              <tr>
-                <th class="px-5 py-3">Member</th>
-                <th class="px-5 py-3">Membership</th>
-                <th class="px-5 py-3">Task Wallet</th>
-                <th class="px-5 py-3">Referral Wallet</th>
-                <th class="px-5 py-3">Tasks</th>
-                <th class="px-5 py-3">Status</th>
-                <th class="px-5 py-3">Joined</th>
-              </tr>
-            </thead>
-            <tbody id="usersTable" class="divide-y"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-xl border overflow-hidden">
-        <div class="px-5 py-4 border-b font-semibold">Pending Withdrawals</div>
-        <div id="withdrawalsList" class="divide-y"></div>
-      </div>
+    <div class="bg-white rounded-xl border">
+      <div class="p-4 border-b font-semibold">Pending Withdrawals</div>
+      <div id="withdrawalsList"></div>
     </div>
   </div>
 
@@ -117,8 +93,8 @@
         showErr(data.error || 'Login failed');
         return;
       }
-      if (data.user.role !== 'admin') {
-        showErr('This account is not an admin. Register first (the first user becomes admin).');
+      if (!data.user.isAdmin) {
+        showErr('This account is not an admin.');
         return;
       }
       token = data.token;
@@ -140,10 +116,9 @@
 
     async function loadAll() {
       try {
-        const [statsRes, usersRes, wRes] = await Promise.all([
+        const [statsRes, usersRes] = await Promise.all([
           fetch('/api/admin/stats', { headers: headers() }),
-          fetch('/api/admin/users', { headers: headers() }),
-          fetch('/api/admin/withdrawals', { headers: headers() })
+          fetch('/api/admin/users', { headers: headers() })
         ]);
 
         if (statsRes.status === 401 || statsRes.status === 403) {
@@ -153,139 +128,91 @@
         }
 
         const stats = await statsRes.json();
-        allUsers = (await usersRes.json()).users || [];
-        const withdrawals = (await wRes.json()).withdrawals || [];
+        allUsers = await usersRes.json() || [];
 
         document.getElementById('stats').innerHTML = `
           <div class="bg-white rounded-xl border p-5">
             <div class="text-xs text-gray-500 uppercase">Total Members</div>
-            <div class="text-2xl font-bold mt-1">${stats.totalUsers}</div>
+            <div class="text-2xl font-bold mt-1">${stats.totalMembers || 0}</div>
           </div>
           <div class="bg-white rounded-xl border p-5">
             <div class="text-xs text-gray-500 uppercase">Activated Memberships</div>
-            <div class="text-2xl font-bold mt-1 text-green-600">${stats.activeMemberships}</div>
+            <div class="text-2xl font-bold mt-1 text-green-600">${stats.activatedMemberships || 0}</div>
           </div>
           <div class="bg-white rounded-xl border p-5">
             <div class="text-xs text-gray-500 uppercase">Pending Withdrawals</div>
-            <div class="text-2xl font-bold mt-1">${stats.pendingWithdrawals}</div>
+            <div class="text-2xl font-bold mt-1">0</div>
           </div>
           <div class="bg-white rounded-xl border p-5">
             <div class="text-xs text-gray-500 uppercase">Task Rewards Paid</div>
-            <div class="text-2xl font-bold mt-1">${naira(stats.totalTaskPaid)}</div>
+            <div class="text-2xl font-bold mt-1">${naira(stats.taskRewardsPaid)}</div>
           </div>
         `;
 
         filterUsers();
-
-        const pending = withdrawals.filter(w => w.status === 'pending');
-        document.getElementById('withdrawalsList').innerHTML = pending.length
-          ? pending.map(w => {
-              const user = allUsers.find(u => u.id === w.userId);
-              return `
-                <div class="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div class="font-medium">${naira(w.amount)} <span class="text-xs text-gray-500">(${w.walletType} wallet)</span></div>
-                    <div class="text-xs text-gray-500 mt-0.5">
-                      ${user ? user.fullName : 'Unknown'} • ${w.accountName} • ${w.bankName} • ${w.accountNumber}
-                    </div>
-                  </div>
-                  <div class="flex gap-2">
-                    <button onclick="processW('${w.id}','paid')" class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg">Mark Paid</button>
-                    <button onclick="processW('${w.id}','rejected')" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg">Reject</button>
-                  </div>
-                </div>`;
-            }).join('')
-          : '<div class="px-5 py-6 text-gray-500 text-sm">No pending withdrawals</div>';
+        document.getElementById('withdrawalsList').innerHTML = '<div class="p-5 text-gray-500">No pending withdrawals</div>';
       } catch (e) {
         console.error(e);
-        alert('Failed to load admin data');
       }
     }
 
     function filterUsers() {
-      const q = (document.getElementById('searchInput').value || '').toLowerCase();
+      const q = (document.getElementById('search').value || '').toLowerCase();
       const tier = document.getElementById('tierFilter').value;
       const status = document.getElementById('statusFilter').value;
 
       let filtered = allUsers.filter(u => {
-        const matchSearch = !q ||
-          (u.fullName || '').toLowerCase().includes(q) ||
-          (u.email || '').toLowerCase().includes(q) ||
-          (u.phone || '').includes(q) ||
-          (u.referralCode || '').toLowerCase().includes(q);
-
-        const matchTier = !tier ||
-          (tier === 'none' ? !u.tier : u.tier === tier);
-
-        const matchStatus = !status ||
-          (status === 'activated' && u.tier) ||
-          (status === 'fee_pending' && u.feePending);
-
-        return matchSearch && matchTier && matchStatus;
+        const matchQ = !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.phone || '').includes(q) || (u.referralCode || '').toLowerCase().includes(q);
+        const matchTier = !tier || u.tier === tier;
+        const matchStatus = !status || (status === 'active' ? u.membershipActive : !u.membershipActive);
+        return matchQ && matchTier && matchStatus;
       });
 
-      document.getElementById('userCount').textContent = filtered.length + ' shown';
+      const rows = filtered.map(u => `
+        <tr class="border-t">
+          <td class="px-4 py-3">${u.name || '-'}</td>
+          <td class="px-4 py-3">${u.email}</td>
+          <td class="px-4 py-3">${u.phone || '-'}</td>
+          <td class="px-4 py-3 capitalize">${u.tier}</td>
+          <td class="px-4 py-3">${u.membershipActive ? '<span class="text-green-600">Active</span>' : '<span class="text-gray-500">Pending</span>'}</td>
+          <td class="px-4 py-3">${naira(u.taskWallet)}</td>
+          <td class="px-4 py-3">${naira(u.referralWallet)}</td>
+          <td class="px-4 py-3">${u.tasksCompleted || 0}</td>
+          <td class="px-4 py-3">${u.referralCode || '-'}</td>
+        </tr>
+      `).join('');
 
-      document.getElementById('usersTable').innerHTML = filtered.length
-        ? filtered.map(u => `
-          <tr class="hover:bg-gray-50">
-            <td class="px-5 py-3">
-              <div class="font-medium">${u.fullName || '—'}</div>
-              <div class="text-xs text-gray-500">${u.email || ''}</div>
-              <div class="text-xs text-gray-400">${u.phone || ''} • ${u.referralCode || ''}</div>
-            </td>
-            <td class="px-5 py-3">
-              ${u.tier
-                ? `<span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                    u.tier === 'gold' ? 'bg-amber-100 text-amber-800' :
-                    u.tier === 'silver' ? 'bg-gray-100 text-gray-800' :
-                    'bg-green-100 text-green-800'
-                  }">${u.tier}</span>`
-                : '<span class="text-gray-400 text-xs">None</span>'}
-            </td>
-            <td class="px-5 py-3 font-medium">${naira(u.taskBalance)}</td>
-            <td class="px-5 py-3 font-medium">${naira(u.referralBalance)}</td>
-            <td class="px-5 py-3">${u.tasksCompleted || 0}</td>
-            <td class="px-5 py-3">
-              ${u.feePending
-                ? '<span class="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Fee Pending</span>'
-                : u.tier
-                  ? '<span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Active</span>'
-                  : '<span class="text-xs text-gray-400">Inactive</span>'}
-            </td>
-            <td class="px-5 py-3 text-xs text-gray-500">${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
-          </tr>
-        `).join('')
-        : '<tr><td colspan="7" class="px-5 py-8 text-center text-gray-500">No members found</td></tr>';
-    }
-
-    async function processW(id, status) {
-      await fetch('/api/admin/withdrawals/' + id, {
-        method: 'PATCH',
-        headers: headers(),
-        body: JSON.stringify({ status })
-      });
-      loadAll();
-    }
-
-    async function runFees() {
-      if (!confirm('Run monthly ₦5,000 fee deduction for all active members now?')) return;
-      const res = await fetch('/api/admin/run-monthly-fees', { method: 'POST', headers: headers() });
-      const data = await res.json();
-      alert(data.message || 'Done');
-      loadAll();
+      document.getElementById('usersTable').innerHTML = `
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-left">
+            <tr>
+              <th class="px-4 py-3">Name</th>
+              <th class="px-4 py-3">Email</th>
+              <th class="px-4 py-3">Phone</th>
+              <th class="px-4 py-3">Tier</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">Task Wallet</th>
+              <th class="px-4 py-3">Referral Wallet</th>
+              <th class="px-4 py-3">Tasks</th>
+              <th class="px-4 py-3">Referral Code</th>
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="9" class="p-5 text-center text-gray-500">No members found</td></tr>'}</tbody>
+        </table>
+      `;
     }
 
     function logout() {
       localStorage.removeItem('zbyte_token');
-      location.href = '/';
+      location.reload();
+    }
+
+    async function runMonthlyFees() {
+      alert('Monthly fee feature will be added later.');
     }
 
     if (token) {
-      fetch('/api/auth/me', { headers: headers() })
-        .then(r => r.json())
-        .then(d => { if (d.user && d.user.role === 'admin') showAdmin(); })
-        .catch(() => {});
+      showAdmin();
     }
   </script>
 </body>
