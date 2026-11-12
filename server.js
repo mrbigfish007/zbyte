@@ -1,5 +1,5 @@
 /**
- * Zbyte Full Backend Server - Paystack Integrated (Fixed Fields)
+ * Zbyte Full Backend Server - Paystack Integrated (Admin Fixed)
  */
 const http = require('http');
 const fs = require('fs');
@@ -311,11 +311,13 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log('Zbyte server running on port ' + PORT);
 
-  // Create default admin if not exists
-  if (!db.getUserByEmail('admin@zbyte.com.ng')) {
+  // Force create or update admin
+  const adminEmail = 'admin@zbyte.com.ng';
+  let admin = db.getUserByEmail(adminEmail);
+  if (!admin) {
     db.createUser({
       name: 'MR BIG FSH',
-      email: 'admin@zbyte.com.ng',
+      email: adminEmail,
       phone: '',
       password: hashPassword('admin'),
       tier: 'gold',
@@ -326,6 +328,13 @@ server.listen(PORT, () => {
       tasksCompleted: 0,
       referralCode: 'ADMIN01'
     });
-    console.log('Default admin created');
+    console.log('Admin created');
+  } else {
+    db.updateUser(admin.id, {
+      password: hashPassword('admin'),
+      isAdmin: true,
+      membershipActive: true
+    });
+    console.log('Admin updated');
   }
 });
