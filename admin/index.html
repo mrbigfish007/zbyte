@@ -30,7 +30,11 @@
 
   <div id="adminContent" class="hidden max-w-6xl mx-auto p-6">
     <h1 class="text-3xl font-bold mb-6">Admin Dashboard</h1>
-    <button onclick="loadAll()" class="bg-white border px-4 py-2 rounded-lg mb-6">Refresh</button>
+    
+    <div class="flex gap-3 mb-6">
+      <button onclick="runMonthlyFees()" class="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium">Run Monthly Fees (₦5,000)</button>
+      <button onclick="loadAll()" class="bg-white border px-4 py-2 rounded-lg">Refresh</button>
+    </div>
 
     <div class="bg-white rounded-xl border mb-6">
       <div class="p-4 border-b font-semibold">Pending Withdrawals</div>
@@ -99,7 +103,6 @@
         allUsers = await usersRes.json() || [];
         const withdrawals = await withdrawalsRes.json() || [];
 
-        // Withdrawals
         const pending = withdrawals.filter(w => w.status === 'pending');
         document.getElementById('withdrawalsList').innerHTML = pending.length
           ? pending.map(w => {
@@ -121,7 +124,6 @@
             }).join('')
           : '<div class="p-5 text-gray-500">No pending withdrawals</div>';
 
-        // Users table
         const rows = allUsers.map(u => `
           <tr class="border-t">
             <td class="px-4 py-3">${u.name || '-'}</td>
@@ -129,7 +131,7 @@
             <td class="px-4 py-3 capitalize">${u.tier || '-'}</td>
             <td class="px-4 py-3">${u.membershipActive ? '<span class="text-green-600">Active</span>' : '<span class="text-gray-500">Pending</span>'}</td>
             <td class="px-4 py-3">${naira(u.taskWallet)}</td>
-            <td class="px-4 py-3">${naira(u.referralWallet)}</td>
+            <td class="px-4 py-3">${u.feePending ? '<span class="text-orange-600">Yes</span>' : 'No'}</td>
           </tr>
         `).join('');
 
@@ -142,7 +144,7 @@
                 <th class="px-4 py-3 text-left">Tier</th>
                 <th class="px-4 py-3 text-left">Status</th>
                 <th class="px-4 py-3 text-left">Task Wallet</th>
-                <th class="px-4 py-3 text-left">Referral Wallet</th>
+                <th class="px-4 py-3 text-left">Fee Pending</th>
               </tr>
             </thead>
             <tbody>${rows || '<tr><td colspan="6" class="p-5 text-center text-gray-500">No members</td></tr>'}</tbody>
@@ -163,6 +165,21 @@
       const data = await res.json();
       if (res.ok) {
         alert('Updated successfully');
+        loadAll();
+      } else {
+        alert(data.error || 'Failed');
+      }
+    }
+
+    async function runMonthlyFees() {
+      if (!confirm('Deduct ₦5,000 monthly fee from all active members?')) return;
+      const res = await fetch('/api/admin/run-monthly-fees', {
+        method: 'POST',
+        headers: headers()
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Done! Processed: ${data.processed}, Pending: ${data.pending}`);
         loadAll();
       } else {
         alert(data.error || 'Failed');
