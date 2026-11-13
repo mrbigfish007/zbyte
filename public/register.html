@@ -3,75 +3,140 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Register – Zbyte</title>
+  <title>Register – ZBYTE</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; }
-    header { background: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .logo { font-weight: 800; font-size: 1.4rem; color: #16a34a; }
-    .container { max-width: 440px; margin: 30px auto; padding: 0 16px; }
-    .card { background: white; border-radius: 20px; padding: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.06); }
-    h1 { text-align: center; margin-bottom: 24px; font-size: 1.6rem; }
-    label { display: block; margin: 14px 0 6px; font-weight: 500; font-size: 0.95rem; }
-    input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; }
-    .tier { border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin: 10px 0; cursor: pointer; transition: 0.2s; }
-    .tier.selected { border-color: #f59e0b; background: #fff7ed; }
-    .tier input { margin-right: 8px; }
-    button { width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 1.05rem; font-weight: 600; margin-top: 16px; cursor: pointer; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a0a1a;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background-image: radial-gradient(circle at 20% 30%, rgba(120, 50, 255, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(50, 100, 255, 0.1) 0%, transparent 50%);
+    }
+    .logo-section {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #7c3aed, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tagline {
+      font-size: 0.75rem;
+      letter-spacing: 3px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+    .card {
+      background: rgba(15, 15, 35, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+    h1 { text-align: center; font-size: 1.5rem; margin-bottom: 6px; }
+    .subtitle { text-align: center; color: #94a3b8; font-size: 0.9rem; margin-bottom: 22px; }
+    label { display: block; font-size: 0.75rem; letter-spacing: 1px; color: #cbd5e1; margin-bottom: 6px; text-transform: uppercase; }
+    input, select {
+      width: 100%;
+      background: rgba(30, 30, 60, 0.6);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 12px;
+      padding: 12px;
+      color: white;
+      font-size: 1rem;
+      margin-bottom: 14px;
+    }
+    input:focus, select:focus { outline: none; border-color: #7c3aed; }
+    .tier {
+      background: rgba(30, 30, 60, 0.5);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .tier.selected { border-color: #facc15; background: rgba(250, 204, 21, 0.1); }
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
     button:disabled { opacity: 0.6; }
-    .error { color: #dc2626; margin-top: 12px; font-size: 0.9rem; text-align: center; }
-    .footer { text-align: center; margin-top: 24px; font-size: 0.85rem; color: #64748b; }
-    a { color: #d97706; text-decoration: none; }
+    .error { color: #f87171; text-align: center; margin-top: 12px; font-size: 0.85rem; }
+    .footer { text-align: center; margin-top: 20px; font-size: 0.85rem; color: #94a3b8; }
+    .footer a { color: #a78bfa; text-decoration: none; }
+    .agree { font-size: 0.8rem; color: #cbd5e1; display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo">Zbyte</div>
-    <a href="/login.html">Already have an account?</a>
-  </header>
+  <div class="logo-section">
+    <div class="logo">ZBYTE</div>
+    <div class="tagline">POWERING THE FUTURE</div>
+  </div>
 
-  <div class="container">
-    <div class="card">
-      <h1>Create Account</h1>
+  <div class="card">
+    <h1>Create Account</h1>
+    <p class="subtitle">Join ZBYTE and start earning</p>
 
-      <label>Full Name</label>
-      <input type="text" id="name" placeholder="Your full name" required />
+    <label>Full Name</label>
+    <input type="text" id="name" placeholder="Your full name" required />
 
-      <label>Phone (Nigeria)</label>
-      <input type="tel" id="phone" placeholder="080xxxxxxxx" required />
+    <label>Phone</label>
+    <input type="tel" id="phone" placeholder="080xxxxxxxx" required />
 
-      <label>Email</label>
-      <input type="email" id="email" placeholder="you@email.com" required />
+    <label>Email</label>
+    <input type="email" id="email" placeholder="you@email.com" required />
 
-      <label>Password</label>
-      <input type="password" id="password" placeholder="Create a password" required />
+    <label>Password</label>
+    <input type="password" id="password" placeholder="Create a password" required />
 
-      <label>Referral Code (optional)</label>
-      <input type="text" id="referral" placeholder="Enter code if you have one" />
+    <label>Referral Code (optional)</label>
+    <input type="text" id="referral" placeholder="Enter code if you have one" />
 
-      <label>Membership (one-time)</label>
-      <div class="tier" onclick="selectTier('premium')">
-        <input type="radio" name="tier" value="premium" /> Premium – ₦10,000 <small>(2 tasks)</small>
-      </div>
-      <div class="tier" onclick="selectTier('silver')">
-        <input type="radio" name="tier" value="silver" /> Silver – ₦20,000 <small>(4 tasks)</small>
-      </div>
-      <div class="tier" onclick="selectTier('gold')">
-        <input type="radio" name="tier" value="gold" /> Gold – ₦30,000 <small>(7 tasks)</small>
-      </div>
-
-      <label style="font-size:0.85rem; display:flex; align-items:center; gap:8px; margin-top:16px;">
-        <input type="checkbox" id="agree" />
-        I am a Nigerian resident (18+), I understand the monthly ₦5,000 fee and withdrawal minima, and I agree to the Terms.
-      </label>
-
-      <button id="btn" onclick="register()">Create Account & Pay</button>
-      <div class="error" id="error"></div>
+    <label>Membership</label>
+    <div class="tier" onclick="selectTier('premium')">
+      <input type="radio" name="tier" value="premium" style="margin-right:8px;" /> Premium – ₦10,000
+    </div>
+    <div class="tier" onclick="selectTier('silver')">
+      <input type="radio" name="tier" value="silver" style="margin-right:8px;" /> Silver – ₦20,000
+    </div>
+    <div class="tier" onclick="selectTier('gold')">
+      <input type="radio" name="tier" value="gold" style="margin-right:8px;" /> Gold – ₦30,000
     </div>
 
-    <div class="footer">
-      Already have an account? <a href="/login.html">Log in</a>
-    </div>
+    <label class="agree">
+      <input type="checkbox" id="agree" />
+      I agree to the terms, monthly ₦5,000 fee, and withdrawal rules.
+    </label>
+
+    <button id="btn" onclick="register()">Create Account & Pay</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <div class="footer">
+    Already have an account? <a href="/login.html">Log in</a>
   </div>
 
   <script>
@@ -96,7 +161,7 @@
       errorEl.textContent = '';
 
       if (!name || !email || !password || !selectedTier) {
-        errorEl.textContent = 'Please fill name, email, password and choose a membership.';
+        errorEl.textContent = 'Please fill all required fields and choose a membership.';
         return;
       }
       if (!agree) {
@@ -120,10 +185,7 @@
         });
 
         const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Registration failed');
-        }
+        if (!res.ok) throw new Error(data.error || 'Registration failed');
 
         if (data.paymentUrl) {
           window.location.href = data.paymentUrl;
