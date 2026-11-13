@@ -7,59 +7,70 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; }
-    .container { max-width: 420px; margin: 40px auto; padding: 20px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    header { background: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .logo { font-weight: 800; font-size: 1.4rem; color: #16a34a; }
+    .container { max-width: 440px; margin: 30px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 20px; padding: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.06); }
     h1 { text-align: center; margin-bottom: 24px; font-size: 1.6rem; }
-    label { display: block; margin: 12px 0 6px; font-weight: 500; font-size: 0.95rem; }
-    input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 1rem; }
-    .tier { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin: 8px 0; cursor: pointer; }
-    .tier.selected { border-color: #16a34a; background: #f0fdf4; }
+    label { display: block; margin: 14px 0 6px; font-weight: 500; font-size: 0.95rem; }
+    input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; }
+    .tier { border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin: 10px 0; cursor: pointer; transition: 0.2s; }
+    .tier.selected { border-color: #f59e0b; background: #fff7ed; }
     .tier input { margin-right: 8px; }
-    button { width: 100%; background: #16a34a; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 1.05rem; font-weight: 600; margin-top: 16px; cursor: pointer; }
+    button { width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 1.05rem; font-weight: 600; margin-top: 16px; cursor: pointer; }
     button:disabled { opacity: 0.6; }
-    .error { color: #dc2626; margin-top: 12px; font-size: 0.9rem; }
-    .footer { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #64748b; }
+    .error { color: #dc2626; margin-top: 12px; font-size: 0.9rem; text-align: center; }
+    .footer { text-align: center; margin-top: 24px; font-size: 0.85rem; color: #64748b; }
+    a { color: #d97706; text-decoration: none; }
   </style>
 </head>
 <body>
+  <header>
+    <div class="logo">Zbyte</div>
+    <a href="/login.html">Already have an account?</a>
+  </header>
+
   <div class="container">
-    <h1>Create Account</h1>
+    <div class="card">
+      <h1>Create Account</h1>
 
-    <label>Full Name</label>
-    <input type="text" id="name" placeholder="Your full name" required />
+      <label>Full Name</label>
+      <input type="text" id="name" placeholder="Your full name" required />
 
-    <label>Phone (Nigeria)</label>
-    <input type="tel" id="phone" placeholder="080xxxxxxxx" required />
+      <label>Phone (Nigeria)</label>
+      <input type="tel" id="phone" placeholder="080xxxxxxxx" required />
 
-    <label>Email</label>
-    <input type="email" id="email" placeholder="you@email.com" required />
+      <label>Email</label>
+      <input type="email" id="email" placeholder="you@email.com" required />
 
-    <label>Password</label>
-    <input type="password" id="password" placeholder="Create a password" required />
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Create a password" required />
 
-    <label>Referral Code (optional)</label>
-    <input type="text" id="referral" placeholder="Enter code if you have one" />
+      <label>Referral Code (optional)</label>
+      <input type="text" id="referral" placeholder="Enter code if you have one" />
 
-    <label>Membership (one-time)</label>
-    <div class="tier" onclick="selectTier('premium')">
-      <input type="radio" name="tier" value="premium" /> Premium – ₦10,000 <small>(2 tasks)</small>
+      <label>Membership (one-time)</label>
+      <div class="tier" onclick="selectTier('premium')">
+        <input type="radio" name="tier" value="premium" /> Premium – ₦10,000 <small>(2 tasks)</small>
+      </div>
+      <div class="tier" onclick="selectTier('silver')">
+        <input type="radio" name="tier" value="silver" /> Silver – ₦20,000 <small>(4 tasks)</small>
+      </div>
+      <div class="tier" onclick="selectTier('gold')">
+        <input type="radio" name="tier" value="gold" /> Gold – ₦30,000 <small>(7 tasks)</small>
+      </div>
+
+      <label style="font-size:0.85rem; display:flex; align-items:center; gap:8px; margin-top:16px;">
+        <input type="checkbox" id="agree" />
+        I am a Nigerian resident (18+), I understand the monthly ₦5,000 fee and withdrawal minima, and I agree to the Terms.
+      </label>
+
+      <button id="btn" onclick="register()">Create Account & Pay</button>
+      <div class="error" id="error"></div>
     </div>
-    <div class="tier" onclick="selectTier('silver')">
-      <input type="radio" name="tier" value="silver" /> Silver – ₦20,000 <small>(4 tasks)</small>
-    </div>
-    <div class="tier" onclick="selectTier('gold')">
-      <input type="radio" name="tier" value="gold" /> Gold – ₦30,000 <small>(7 tasks)</small>
-    </div>
-
-    <label style="font-size:0.85rem; display:flex; align-items:center; gap:8px; margin-top:16px;">
-      <input type="checkbox" id="agree" />
-      I am a Nigerian resident (18+), I understand the monthly ₦5,000 fee and withdrawal minima, and I agree to the Terms.
-    </label>
-
-    <button id="btn" onclick="register()">Create Account & Pay</button>
-    <div class="error" id="error"></div>
 
     <div class="footer">
-      Zbyte – Complete tasks. Earn in Naira.
+      Already have an account? <a href="/login.html">Log in</a>
     </div>
   </div>
 
@@ -102,10 +113,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name,
-            email,
-            phone,
-            password,
+            name, email, phone, password,
             tier: selectedTier,
             referralCode: referral
           })
@@ -130,4 +138,4 @@
     }
   </script>
 </body>
-  </html>
+</html>
