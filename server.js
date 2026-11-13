@@ -1,5 +1,5 @@
 /**
- * Zbyte Full Backend Server - Paystack Integrated (Login Fixed)
+ * Zbyte Full Backend Server - With Withdrawals + Monthly Fee
  */
 const http = require('http');
 const fs = require('fs');
@@ -129,7 +129,6 @@ const server = http.createServer(async (req, res) => {
   // ========== REGISTER ==========
   if (pathname === '/api/auth/register' && req.method === 'POST') {
     const body = await parseBody(req);
-
     const name = body.name || body.fullName || body.fullname || (body.email ? body.email.split('@')[0] : 'User');
     const email = body.email || '';
     const phone = body.phone || body.phoneNumber || '';
@@ -137,50 +136,30 @@ const server = http.createServer(async (req, res) => {
     const tier = (body.tier || body.membership || body.plan || '').toLowerCase();
     const referralCode = body.referralCode || body.referral || body.ref || '';
 
-    if (!email || !password || !tier) {
-      return send(res, 400, { error: 'Missing fields' });
-    }
-
-    if (db.getUserByEmail(email)) {
-      return send(res, 400, { error: 'Email already registered' });
-    }
+    if (!email || !password || !tier) return send(res, 400, { error: 'Missing fields' });
+    if (db.getUserByEmail(email)) return send(res, 400, { error: 'Email already registered' });
 
     const tiers = { premium: 10000, silver: 20000, gold: 30000 };
     const amount = tiers[tier];
-    if (!amount) {
-      return send(res, 400, { error: 'Invalid membership tier' });
-    }
+    if (!amount) return send(res, 400, { error: 'Invalid membership tier' });
 
     const user = db.createUser({
-      name,
-      email,
-      phone,
+      name, email, phone,
       password: hashPassword(password),
-      tier,
-      isAdmin: false,
-      membershipActive: false,
-      taskWallet: 0,
-      referralWallet: 0,
-      tasksCompleted: 0
+      tier, isAdmin: false, membershipActive: false,
+      taskWallet: 0, referralWallet: 0, tasksCompleted: 0
     });
 
     if (referralCode) {
       const referrer = db.getUserByReferralCode(referralCode);
-      if (referrer) {
-        db.addReferral(referrer.id, user.id);
-      }
+      if (referrer) db.addReferral(referrer.id, user.id);
     }
 
     try {
       const paystackRes = await paystackRequest('POST', '/transaction/initialize', {
-        email: email,
-        amount: amount * 100,
+        email, amount: amount * 100,
         callback_url: `https://zbyte-production.up.railway.app/api/payment/callback?userId=\( {user.id}&tier= \){tier}`,
-        metadata: {
-          userId: user.id,
-          tier: tier,
-          name: name
-        }
+        metadata: { userId: user.id, tier, name }
       });
 
       if (paystackRes.status && paystackRes.data && paystackRes.data.authorization_url) {
@@ -190,15 +169,14 @@ const server = http.createServer(async (req, res) => {
           paymentUrl: paystackRes.data.authorization_url,
           reference: paystackRes.data.reference
         });
-      } else {
-        return send(res, 400, { error: 'Could not start payment', details: paystackRes.message || paystackRes });
       }
+      return send(res, 400, { error: 'Could not start payment', details: paystackRes.message || paystackRes });
     } catch (err) {
       return send(res, 500, { error: 'Payment failed to start', details: err.message });
     }
   }
 
-  // ========== LOGIN (Fixed) ==========
+  // ========== LOGIN ==========
   if (pathname === '/api/auth/login' && req.method === 'POST') {
     const body = await parseBody(req);
     const email = body.email || body.identifier || '';
@@ -208,19 +186,12 @@ const server = http.createServer(async (req, res) => {
     }
     const token = createToken(user);
     return send(res, 200, {
-      success: true,
-      token,
+      success: true, token,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        tier: user.tier,
-        isAdmin: user.isAdmin,
-        membershipActive: user.membershipActive,
-        taskWallet: user.taskWallet,
-        referralWallet: user.referralWallet,
-        tasksCompleted: user.tasksCompleted,
-        referralCode: user.referralCode
+        id: user.id, name: user.name, email: user.email, tier: user.tier,
+        isAdmin: user.isAdmin, membershipActive: user.membershipActive,
+        taskWallet: user.taskWallet, referralWallet: user.referralWallet,
+        tasksCompleted: user.tasksCompleted, referralCode: user.referralCode
       }
     });
   }
@@ -232,27 +203,20 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(302, { Location: '/pay.html?error=1' });
       return res.end();
     }
-
     try {
       const verify = await paystackRequest('GET', `/transaction/verify/${reference}`);
       if (verify.status && verify.data && verify.data.status === 'success') {
-        db.updateUser(userId, {
-          membershipActive: true,
-          tier: (tier || 'premium').toLowerCase()
-        });
-
+        db.updateUser(userId, { membershipActive: true, tier: (tier || 'premium').toLowerCase() });
         const referral = db.getReferralByNewUser(userId);
         if (referral) {
           const bonuses = { premium: 1000, silver: 2000, gold: 3000 };
           const bonus = bonuses[(tier || 'premium').toLowerCase()] || 1000;
           db.addToWallet(referral.referrerId, 'referral', bonus);
         }
-
         res.writeHead(302, { Location: '/dashboard.html?paid=1' });
         return res.end();
       }
     } catch (e) {}
-
     res.writeHead(302, { Location: '/pay.html?error=1' });
     return res.end();
   }
@@ -262,16 +226,10 @@ const server = http.createServer(async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
     return send(res, 200, {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      tier: user.tier,
-      isAdmin: user.isAdmin,
-      membershipActive: user.membershipActive,
-      taskWallet: user.taskWallet,
-      referralWallet: user.referralWallet,
-      tasksCompleted: user.tasksCompleted,
-      referralCode: user.referralCode
+      id: user.id, name: user.name, email: user.email, tier: user.tier,
+      isAdmin: user.isAdmin, membershipActive: user.membershipActive,
+      taskWallet: user.taskWallet, referralWallet: user.referralWallet,
+      tasksCompleted: user.tasksCompleted, referralCode: user.referralCode
     });
   }
 
@@ -286,9 +244,22 @@ const server = http.createServer(async (req, res) => {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
     if (!user.membershipActive) return send(res, 403, { error: 'Membership not active' });
-
     const body = await parseBody(req);
     const result = db.completeTask(user.id, body.taskId);
+    if (!result.success) return send(res, 400, { error: result.message });
+    return send(res, 200, result);
+  }
+
+  // ========== WITHDRAWALS ==========
+  if (pathname === '/api/withdraw' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user) return send(res, 401, { error: 'Unauthorized' });
+    const body = await parseBody(req);
+    const result = db.createWithdrawal(user.id, body.walletType, Number(body.amount), {
+      bankName: body.bankName,
+      accountNumber: body.accountNumber,
+      accountName: body.accountName
+    });
     if (!result.success) return send(res, 400, { error: result.message });
     return send(res, 200, result);
   }
@@ -306,36 +277,46 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, db.getStats());
   }
 
+  if (pathname === '/api/admin/withdrawals' && req.method === 'GET') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Admin only' });
+    return send(res, 200, db.getWithdrawals('pending'));
+  }
+
+  if (pathname === '/api/admin/withdrawals/update' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Admin only' });
+    const body = await parseBody(req);
+    const result = db.updateWithdrawal(body.id, body.status);
+    if (!result) return send(res, 404, { error: 'Not found' });
+    return send(res, 200, { success: true, withdrawal: result });
+  }
+
+  // ========== MONTHLY FEE ==========
+  if (pathname === '/api/admin/run-monthly-fees' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Admin only' });
+    const result = db.runMonthlyFees();
+    return send(res, 200, { success: true, ...result });
+  }
+
   send(res, 404, { error: 'Not found' });
 });
 
 server.listen(PORT, () => {
   console.log('Zbyte server running on port ' + PORT);
-
-  // Force create or update admin
   const adminEmail = 'admin@zbyte.com.ng';
   let admin = db.getUserByEmail(adminEmail);
   if (!admin) {
     db.createUser({
-      name: 'MR BIG FSH',
-      email: adminEmail,
-      phone: '',
-      password: hashPassword('admin'),
-      tier: 'gold',
-      isAdmin: true,
-      membershipActive: true,
-      taskWallet: 0,
-      referralWallet: 0,
-      tasksCompleted: 0,
-      referralCode: 'ADMIN01'
+      name: 'MR BIG FSH', email: adminEmail, phone: '',
+      password: hashPassword('admin'), tier: 'gold', isAdmin: true,
+      membershipActive: true, taskWallet: 0, referralWallet: 0,
+      tasksCompleted: 0, referralCode: 'ADMIN01'
     });
-    console.log('Admin created');
   } else {
     db.updateUser(admin.id, {
-      password: hashPassword('admin'),
-      isAdmin: true,
-      membershipActive: true
+      password: hashPassword('admin'), isAdmin: true, membershipActive: true
     });
-    console.log('Admin updated');
   }
 });
