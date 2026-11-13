@@ -15,7 +15,7 @@
     .tier-premium { background: #dcfce7; color: #16a34a; }
     .tier-silver { background: #e0e7ff; color: #4338ca; }
     .tier-gold { background: #fef3c7; color: #d97706; }
-    .container { max-width: 520px; margin: 16px auto; padding: 0 16px 80px; }
+    .container { max-width: 520px; margin: 16px auto; padding: 0 16px 90px; }
     .welcome { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
     .welcome h2 { font-size: 1.45rem; }
     .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
@@ -29,9 +29,12 @@
     button { background: #f59e0b; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; }
     .logout { background: #ef4444; padding: 6px 12px; font-size: 0.85rem; }
     input, select { width: 100%; padding: 11px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 10px; }
-    .nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); }
-    .nav a { text-decoration: none; color: #64748b; font-size: 0.75rem; text-align: center; }
+    .nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); z-index: 20; }
+    .nav a { text-decoration: none; color: #64748b; font-size: 0.75rem; text-align: center; padding: 6px 12px; border-radius: 10px; }
+    .nav a.active { color: #f59e0b; background: #fff7ed; }
     .notification { background: #ecfdf5; border-left: 4px solid #16a34a; padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; font-size: 0.85rem; }
+    .section { display: none; }
+    .section.active { display: block; }
   </style>
 </head>
 <body>
@@ -52,61 +55,88 @@
       New tasks added! Check available tasks below.
     </div>
 
-    <div class="welcome">
-      <h2>Welcome back, <span id="welcomeName">User</span>!</h2>
-      <p style="opacity:0.9; margin-top:4px;">Keep completing tasks to earn more.</p>
-    </div>
-
-    <div id="upgradeBox" class="upgrade" style="display:none;">
-      You are on <strong id="currentTier"></strong> membership. 
-      <a href="/register.html" style="color:#d97706; font-weight:600;">Upgrade to Gold</a> for more tasks and higher referral bonus.
-    </div>
-
-    <div class="stats">
-      <div class="stat">
-        <div class="num" id="taskWallet">₦0</div>
-        <div class="label">Task Wallet</div>
+    <!-- Home Section -->
+    <div id="home" class="section active">
+      <div class="welcome">
+        <h2>Welcome back, <span id="welcomeName">User</span>!</h2>
+        <p style="opacity:0.9; margin-top:4px;">Keep completing tasks to earn more.</p>
       </div>
-      <div class="stat">
-        <div class="num" id="referralWallet">₦0</div>
-        <div class="label">Referral</div>
+
+      <div id="upgradeBox" class="upgrade" style="display:none;">
+        You are on <strong id="currentTier"></strong> membership. 
+        <a href="/register.html" style="color:#d97706; font-weight:600;">Upgrade to Gold</a> for more tasks and higher referral bonus.
       </div>
-      <div class="stat">
-        <div class="num" id="tasksDone">0</div>
-        <div class="label">Tasks Done</div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="num" id="taskWallet">₦0</div>
+          <div class="label">Task Wallet</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="referralWallet">₦0</div>
+          <div class="label">Referral</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="tasksDone">0</div>
+          <div class="label">Tasks Done</div>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <h3>Request Withdrawal</h3>
-      <select id="walletType">
-        <option value="task">Task Wallet</option>
-        <option value="referral">Referral Wallet</option>
-      </select>
-      <input type="number" id="amount" placeholder="Amount" />
-      <input type="text" id="bankName" placeholder="Bank Name" />
-      <input type="text" id="accountNumber" placeholder="Account Number" />
-      <input type="text" id="accountName" placeholder="Account Name" />
-      <button onclick="requestWithdrawal()">Request Withdrawal</button>
-      <div id="withdrawError" style="color:#dc2626; margin-top:10px; font-size:0.9rem;"></div>
+    <!-- Tasks Section -->
+    <div id="tasks" class="section">
+      <div class="card">
+        <h3>Available Tasks</h3>
+        <div id="tasksList">Loading tasks...</div>
+      </div>
     </div>
 
-    <div class="card">
-      <h3>Available Tasks</h3>
-      <div id="tasksList">Loading tasks...</div>
+    <!-- Wallet Section -->
+    <div id="wallet" class="section">
+      <div class="card">
+        <h3>Request Withdrawal</h3>
+        <select id="walletType">
+          <option value="task">Task Wallet</option>
+          <option value="referral">Referral Wallet</option>
+        </select>
+        <input type="number" id="amount" placeholder="Amount" />
+        <input type="text" id="bankName" placeholder="Bank Name" />
+        <input type="text" id="accountNumber" placeholder="Account Number" />
+        <input type="text" id="accountName" placeholder="Account Name" />
+        <button onclick="requestWithdrawal()">Request Withdrawal</button>
+        <div id="withdrawError" style="color:#dc2626; margin-top:10px; font-size:0.9rem;"></div>
+      </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div id="profile" class="section">
+      <div class="card">
+        <h3>Profile</h3>
+        <p><strong>Name:</strong> <span id="profileName">-</span></p>
+        <p><strong>Email:</strong> <span id="profileEmail">-</span></p>
+        <p><strong>Membership:</strong> <span id="profileTier">-</span></p>
+        <p style="margin-top:12px;"><strong>Referral Code:</strong> <span id="profileRef">-</span></p>
+      </div>
     </div>
   </div>
 
   <nav class="nav">
-    <a href="/dashboard.html"><div>🏠</div>Home</a>
-    <a href="#"><div>📋</div>Tasks</a>
-    <a href="#"><div>💰</div>Wallet</a>
-    <a href="#"><div>👤</div>Profile</a>
+    <a href="#" onclick="showSection('home')" class="active" id="nav-home"><div>🏠</div>Home</a>
+    <a href="#" onclick="showSection('tasks')" id="nav-tasks"><div>📋</div>Tasks</a>
+    <a href="#" onclick="showSection('wallet')" id="nav-wallet"><div>💰</div>Wallet</a>
+    <a href="#" onclick="showSection('profile')" id="nav-profile"><div>👤</div>Profile</a>
   </nav>
 
   <script>
     const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
     if (!token) window.location.href = '/login.html';
+
+    function showSection(section) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+      document.getElementById(section).classList.add('active');
+      document.getElementById('nav-' + section).classList.add('active');
+    }
 
     async function loadUser() {
       try {
@@ -121,6 +151,10 @@
         document.getElementById('taskWallet').textContent = '₦' + (user.taskWallet || 0).toLocaleString();
         document.getElementById('referralWallet').textContent = '₦' + (user.referralWallet || 0).toLocaleString();
         document.getElementById('tasksDone').textContent = user.tasksCompleted || 0;
+        document.getElementById('profileName').textContent = name;
+        document.getElementById('profileEmail').textContent = user.email || '-';
+        document.getElementById('profileTier').textContent = (user.tier || 'premium').toUpperCase();
+        document.getElementById('profileRef').textContent = user.referralCode || '-';
 
         const tier = (user.tier || 'premium').toLowerCase();
         const badge = document.getElementById('tierBadge');
