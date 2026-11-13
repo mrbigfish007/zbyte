@@ -26,7 +26,7 @@
     .card { background: white; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
     .task { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
     .task:last-child { border-bottom: none; }
-    button { background: #f59e0b; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; }
+    button { background: #f59e0b; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
     .logout { background: #ef4444; padding: 6px 12px; font-size: 0.85rem; }
     input, select { width: 100%; padding: 11px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 10px; }
     .nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); z-index: 20; }
@@ -35,6 +35,8 @@
     .notification { background: #ecfdf5; border-left: 4px solid #16a34a; padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; font-size: 0.85rem; }
     .section { display: none; }
     .section.active { display: block; }
+    .referral-box { background: #fff7ed; border-radius: 12px; padding: 12px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .referral-box input { margin: 0; flex: 1; margin-right: 10px; }
   </style>
 </head>
 <body>
@@ -52,10 +54,9 @@
 
   <div class="container">
     <div class="notification">
-      New tasks added! Check available tasks below.
+      Share your referral link and earn when friends join!
     </div>
 
-    <!-- Home Section -->
     <div id="home" class="section active">
       <div class="welcome">
         <h2>Welcome back, <span id="welcomeName">User</span>!</h2>
@@ -81,9 +82,17 @@
           <div class="label">Tasks Done</div>
         </div>
       </div>
+
+      <div class="card">
+        <h3>Your Referral Link</h3>
+        <p style="font-size:0.9rem; color:#64748b; margin-bottom:10px;">Share this link and earn when someone registers and pays.</p>
+        <div class="referral-box">
+          <input type="text" id="referralLink" readonly />
+          <button onclick="copyReferral()">Copy</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Tasks Section -->
     <div id="tasks" class="section">
       <div class="card">
         <h3>Available Tasks</h3>
@@ -91,7 +100,6 @@
       </div>
     </div>
 
-    <!-- Wallet Section -->
     <div id="wallet" class="section">
       <div class="card">
         <h3>Request Withdrawal</h3>
@@ -108,7 +116,6 @@
       </div>
     </div>
 
-    <!-- Profile Section -->
     <div id="profile" class="section">
       <div class="card">
         <h3>Profile</h3>
@@ -138,6 +145,13 @@
       document.getElementById('nav-' + section).classList.add('active');
     }
 
+    function copyReferral() {
+      const input = document.getElementById('referralLink');
+      input.select();
+      document.execCommand('copy');
+      alert('Referral link copied!');
+    }
+
     async function loadUser() {
       try {
         const res = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -155,6 +169,10 @@
         document.getElementById('profileEmail').textContent = user.email || '-';
         document.getElementById('profileTier').textContent = (user.tier || 'premium').toUpperCase();
         document.getElementById('profileRef').textContent = user.referralCode || '-';
+
+        // Clean referral link (change zbyte.com later when you buy the domain)
+        const baseUrl = 'https://zbyte.com';
+        document.getElementById('referralLink').value = baseUrl + '/register.html?ref=' + (user.referralCode || '');
 
         const tier = (user.tier || 'premium').toLowerCase();
         const badge = document.getElementById('tierBadge');
