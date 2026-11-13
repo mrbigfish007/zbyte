@@ -3,89 +3,112 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard – Zbyte</title>
+  <title>Dashboard – ZBYTE</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; }
-    header { background: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 10; }
-    .logo { font-weight: 800; font-size: 1.4rem; color: #16a34a; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #050510;
+      color: #ffffff;
+      min-height: 100vh;
+      padding-bottom: 80px;
+      background-image: radial-gradient(circle at 20% 10%, rgba(80, 40, 200, 0.12) 0%, transparent 40%);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background: rgba(10, 10, 25, 0.9);
+      border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+    }
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #7c3aed, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
     .profile { display: flex; align-items: center; gap: 10px; }
-    .avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
-    .tier-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 600; text-transform: uppercase; }
-    .tier-premium { background: #dcfce7; color: #16a34a; }
-    .tier-silver { background: #e0e7ff; color: #4338ca; }
-    .tier-gold { background: #fef3c7; color: #d97706; }
-    .container { max-width: 520px; margin: 16px auto; padding: 0 16px 90px; }
-    .welcome { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
-    .welcome h2 { font-size: 1.45rem; }
-    .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .stat { background: white; border-radius: 16px; padding: 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
-    .stat .num { font-size: 1.3rem; font-weight: 800; color: #16a34a; }
-    .stat .label { font-size: 0.72rem; color: #64748b; }
-    .upgrade { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 14px; margin-bottom: 16px; font-size: 0.9rem; }
-    .card { background: white; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-    .task { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      display: flex; align-items: center; justify-content: center; font-weight: 700;
+    }
+    .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+    .welcome { margin-bottom: 20px; }
+    .welcome h1 { font-size: 1.6rem; }
+    .welcome p { color: #94a3b8; font-size: 0.9rem; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+    .stat-card {
+      background: rgba(15, 15, 35, 0.8);
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .stat-card .label { font-size: 0.75rem; color: #94a3b8; }
+    .stat-card .value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+    .card {
+      background: rgba(15, 15, 35, 0.8);
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .task { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .task:last-child { border-bottom: none; }
-    button { background: #f59e0b; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
-    .logout { background: #ef4444; padding: 6px 12px; font-size: 0.85rem; }
-    input, select { width: 100%; padding: 11px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 10px; }
-    .nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); z-index: 20; }
-    .nav a { text-decoration: none; color: #64748b; font-size: 0.75rem; text-align: center; padding: 6px 12px; border-radius: 10px; }
-    .nav a.active { color: #f59e0b; background: #fff7ed; }
-    .notification { background: #ecfdf5; border-left: 4px solid #16a34a; padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; font-size: 0.85rem; }
+    button {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: white; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; cursor: pointer;
+    }
+    .logout { background: #ef4444; padding: 6px 12px; font-size: 0.8rem; }
+    input, select {
+      width: 100%; background: rgba(30,30,60,0.6); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 10px; padding: 11px; color: white; margin-bottom: 10px;
+    }
+    .nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(10,10,25,0.95); backdrop-filter: blur(10px);
+      display: flex; justify-content: space-around; padding: 10px 0;
+      border-top: 1px solid rgba(124,58,237,0.2);
+    }
+    .nav a { color: #94a3b8; text-decoration: none; font-size: 0.7rem; text-align: center; }
+    .nav a.active { color: #a78bfa; }
     .section { display: none; }
     .section.active { display: block; }
-    .referral-box { background: #fff7ed; border-radius: 12px; padding: 12px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .referral-box input { margin: 0; flex: 1; margin-right: 10px; }
+    .referral-box { display: flex; gap: 8px; }
+    .referral-box input { flex: 1; margin: 0; }
   </style>
 </head>
 <body>
   <header>
-    <div class="logo">Zbyte</div>
+    <div class="logo">ZBYTE</div>
     <div class="profile">
       <div class="avatar" id="avatar">U</div>
-      <div>
-        <div id="userName" style="font-weight:600; font-size:0.95rem;">User</div>
-        <span id="tierBadge" class="tier-badge">Premium</span>
-      </div>
       <button class="logout" onclick="logout()">Logout</button>
     </div>
   </header>
 
   <div class="container">
-    <div class="notification">
-      Share your referral link and earn when friends join!
-    </div>
-
     <div id="home" class="section active">
       <div class="welcome">
-        <h2>Welcome back, <span id="welcomeName">User</span>!</h2>
-        <p style="opacity:0.9; margin-top:4px;">Keep completing tasks to earn more.</p>
-      </div>
-
-      <div id="upgradeBox" class="upgrade" style="display:none;">
-        You are on <strong id="currentTier"></strong> membership. 
-        <a href="/register.html" style="color:#d97706; font-weight:600;">Upgrade to Gold</a> for more tasks and higher referral bonus.
+        <h1>Hello, <span id="welcomeName">User</span></h1>
+        <p>Welcome back! Here's what's happening with your account.</p>
       </div>
 
       <div class="stats">
-        <div class="stat">
-          <div class="num" id="taskWallet">₦0</div>
+        <div class="stat-card">
           <div class="label">Task Wallet</div>
+          <div class="value" id="taskWallet">₦0</div>
         </div>
-        <div class="stat">
-          <div class="num" id="referralWallet">₦0</div>
-          <div class="label">Referral</div>
-        </div>
-        <div class="stat">
-          <div class="num" id="tasksDone">0</div>
-          <div class="label">Tasks Done</div>
+        <div class="stat-card">
+          <div class="label">Referral Wallet</div>
+          <div class="value" id="referralWallet">₦0</div>
         </div>
       </div>
 
       <div class="card">
-        <h3>Your Referral Link</h3>
-        <p style="font-size:0.9rem; color:#64748b; margin-bottom:10px;">Share this link and earn when someone registers and pays.</p>
+        <h3 style="margin-bottom:10px;">Your Referral Link</h3>
         <div class="referral-box">
           <input type="text" id="referralLink" readonly />
           <button onclick="copyReferral()">Copy</button>
@@ -95,14 +118,14 @@
 
     <div id="tasks" class="section">
       <div class="card">
-        <h3>Available Tasks</h3>
-        <div id="tasksList">Loading tasks...</div>
+        <h3 style="margin-bottom:12px;">Available Tasks</h3>
+        <div id="tasksList">Loading...</div>
       </div>
     </div>
 
     <div id="wallet" class="section">
       <div class="card">
-        <h3>Request Withdrawal</h3>
+        <h3 style="margin-bottom:12px;">Request Withdrawal</h3>
         <select id="walletType">
           <option value="task">Task Wallet</option>
           <option value="referral">Referral Wallet</option>
@@ -112,17 +135,17 @@
         <input type="text" id="accountNumber" placeholder="Account Number" />
         <input type="text" id="accountName" placeholder="Account Name" />
         <button onclick="requestWithdrawal()">Request Withdrawal</button>
-        <div id="withdrawError" style="color:#dc2626; margin-top:10px; font-size:0.9rem;"></div>
+        <div id="withdrawError" style="color:#f87171; margin-top:10px;"></div>
       </div>
     </div>
 
     <div id="profile" class="section">
       <div class="card">
-        <h3>Profile</h3>
+        <h3 style="margin-bottom:12px;">Profile</h3>
         <p><strong>Name:</strong> <span id="profileName">-</span></p>
-        <p><strong>Email:</strong> <span id="profileEmail">-</span></p>
-        <p><strong>Membership:</strong> <span id="profileTier">-</span></p>
-        <p style="margin-top:12px;"><strong>Referral Code:</strong> <span id="profileRef">-</span></p>
+        <p style="margin-top:8px;"><strong>Email:</strong> <span id="profileEmail">-</span></p>
+        <p style="margin-top:8px;"><strong>Membership:</strong> <span id="profileTier">-</span></p>
+        <p style="margin-top:8px;"><strong>Referral Code:</strong> <span id="profileRef">-</span></p>
       </div>
     </div>
   </div>
@@ -149,7 +172,7 @@
       const input = document.getElementById('referralLink');
       input.select();
       document.execCommand('copy');
-      alert('Referral link copied!');
+      alert('Copied!');
     }
 
     async function loadUser() {
@@ -158,31 +181,15 @@
         const user = await res.json();
         if (!res.ok) throw new Error();
         const name = user.name || 'User';
-        const firstName = name.split(' ')[0];
-        document.getElementById('userName').textContent = name;
-        document.getElementById('welcomeName').textContent = firstName;
-        document.getElementById('avatar').textContent = firstName.charAt(0).toUpperCase();
+        document.getElementById('welcomeName').textContent = name.split(' ')[0];
+        document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
         document.getElementById('taskWallet').textContent = '₦' + (user.taskWallet || 0).toLocaleString();
         document.getElementById('referralWallet').textContent = '₦' + (user.referralWallet || 0).toLocaleString();
-        document.getElementById('tasksDone').textContent = user.tasksCompleted || 0;
         document.getElementById('profileName').textContent = name;
         document.getElementById('profileEmail').textContent = user.email || '-';
         document.getElementById('profileTier').textContent = (user.tier || 'premium').toUpperCase();
         document.getElementById('profileRef').textContent = user.referralCode || '-';
-
-        // Clean referral link (change zbyte.com later when you buy the domain)
-        const baseUrl = 'https://zbyte.com';
-        document.getElementById('referralLink').value = baseUrl + '/register.html?ref=' + (user.referralCode || '');
-
-        const tier = (user.tier || 'premium').toLowerCase();
-        const badge = document.getElementById('tierBadge');
-        badge.textContent = tier.charAt(0).toUpperCase() + tier.slice(1);
-        badge.className = 'tier-badge tier-' + tier;
-
-        if (tier !== 'gold') {
-          document.getElementById('upgradeBox').style.display = 'block';
-          document.getElementById('currentTier').textContent = tier;
-        }
+        document.getElementById('referralLink').value = 'https://zbyte.com/register.html?ref=' + (user.referralCode || '');
       } catch (e) {
         localStorage.clear();
         window.location.href = '/login.html';
@@ -202,8 +209,8 @@
           <div class="task">
             <div>
               <strong>${task.title}</strong><br>
-              <small style="color:#64748b;">${task.description}</small><br>
-              <span style="color:#16a34a; font-weight:700;">₦${task.reward}</span>
+              <small style="color:#94a3b8;">${task.description}</small><br>
+              <span style="color:#4ade80;">₦${task.reward}</span>
             </div>
             <button onclick="completeTask('${task.id}')">Start</button>
           </div>
@@ -251,7 +258,7 @@
           body: JSON.stringify(data)
         });
         const result = await res.json();
-        if (!res.ok) throw new Error(result.error);
+        if (!res.ok) throw new Erroii(kkr(result.error);
         alert('Withdrawal request submitted!');
         document.getElementById('amount').value = '';
         document.getElementById('bankName').value = '';
