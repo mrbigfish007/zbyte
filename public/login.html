@@ -4,52 +4,71 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login – Zbyte</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#f0fdf4',100:'#dcfce7',500:'#22c55e',600:'#16a34a',700:'#15803d'}}}}}</script>
-  <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');body{font-family:'Inter',system-ui,sans-serif}</style>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; }
+    header { background: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .logo { font-weight: 800; font-size: 1.4rem; color: #16a34a; display: flex; align-items: center; gap: 8px; }
+    .logo-icon { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+    .container { max-width: 420px; margin: 40px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 20px; padding: 32px 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.06); }
+    h1 { text-align: center; margin-bottom: 8px; font-size: 1.8rem; }
+    .subtitle { text-align: center; color: #64748b; margin-bottom: 28px; }
+    label { display: block; margin: 16px 0 6px; font-weight: 500; }
+    input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; }
+    button { width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 1.05rem; font-weight: 600; margin-top: 20px; cursor: pointer; }
+    button:disabled { opacity: 0.6; }
+    .error { color: #dc2626; margin-top: 12px; text-align: center; font-size: 0.9rem; }
+    .footer { text-align: center; margin-top: 24px; font-size: 0.9rem; }
+    a { color: #d97706; text-decoration: none; font-weight: 600; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <nav class="bg-white border-b">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2">
-        <div class="w-9 h-9 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold">Z</div>
-        <span class="text-xl font-bold">Zbyte</span>
-      </a>
-      <a href="/register.html" class="text-sm font-medium text-gray-600">Need an account?</a>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-icon">Z</div>
+      Zbyte
     </div>
-  </nav>
-  <div class="max-w-md mx-auto px-4 py-16">
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold">Welcome back</h1>
-      <p class="mt-2 text-gray-600">Log in to your Zbyte account</p>
+    <a href="/register.html">Need an account?</a>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h1>Welcome back</h1>
+      <p class="subtitle">Log in to your Zbyte account</p>
+
+      <form id="form">
+        <label>Email or Phone</label>
+        <input type="text" id="identifier" name="identifier" required />
+
+        <label>Password</label>
+        <input type="password" id="password" name="password" required />
+
+        <button type="submit" id="btn">Log in</button>
+        <div class="error" id="error"></div>
+      </form>
     </div>
-    <form id="form" class="bg-white rounded-2xl border shadow-sm p-6 sm:p-8 space-y-5">
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Email or Phone</label>
-        <input name="identifier" required class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Password</label>
-        <input name="password" type="password" required class="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" />
-      </div>
-      <button type="submit" id="btn" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3.5 rounded-xl">Log in</button>
-      <p id="error" class="text-red-600 text-sm hidden"></p>
-    </form>
+
+    <div class="footer">
+      Don’t have an account? <a href="/register.html">Create one</a>
+    </div>
   </div>
+
   <script>
     document.getElementById('form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('btn');
       const err = document.getElementById('error');
       btn.disabled = true;
-      err.classList.add('hidden');
+      err.textContent = '';
+
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            identifier: e.target.identifier.value.trim(),
-            password: e.target.password.value
+            identifier: document.getElementById('identifier').value.trim(),
+            password: document.getElementById('password').value
           })
         });
         const data = await res.json();
@@ -58,7 +77,6 @@
         location.href = '/dashboard.html';
       } catch (ex) {
         err.textContent = ex.message;
-        err.classList.remove('hidden');
         btn.disabled = false;
       }
     });
