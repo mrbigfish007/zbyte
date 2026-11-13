@@ -6,24 +6,19 @@
   <title>Dashboard – Zbyte</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; color: #0f172a; }
-    header { background: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 10; }
-    .logo { font-weight: 800; font-size: 1.4rem; color: #16a34a; }
-    .container { max-width: 520px; margin: 24px auto; padding: 0 16px; }
-    .card { background: white; border-radius: 20px; padding: 22px; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    h2 { margin-bottom: 10px; font-size: 1.2rem; }
-    .balance { font-size: 2rem; font-weight: 800; color: #16a34a; }
-    .small { font-size: 0.85rem; color: #64748b; margin-top: 4px; }
-    .task { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; }
+    header { background: #1e2937; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-weight: 800; font-size: 1.5rem; color: #22c55e; }
+    .container { max-width: 500px; margin: 20px auto; padding: 0 16px; }
+    .card { background: #1e2937; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
+    h2 { margin-bottom: 8px; color: #f1f5f9; }
+    .balance { font-size: 2rem; font-weight: 800; color: #22c55e; }
+    .small { font-size: 0.85rem; color: #94a3b8; }
+    .task { padding: 14px 0; border-bottom: 1px solid #334155; }
     .task:last-child { border-bottom: none; }
-    .task-info h3 { font-size: 1rem; margin-bottom: 4px; }
-    .task-info p { font-size: 0.85rem; color: #64748b; }
-    .reward { color: #16a34a; font-weight: 700; }
-    button { background: #16a34a; color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; }
-    button:disabled { background: #94a3b8; }
-    .error { color: #dc2626; margin-top: 12px; font-size: 0.9rem; }
-    input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; font-size: 1rem; }
-    .logout { background: #ef4444; padding: 8px 14px; }
+    button { background: #22c55e; color: #0f172a; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; }
+    input, select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; color: white; margin-bottom: 10px; }
+    .logout { background: #ef4444; color: white; }
   </style>
 </head>
 <body>
@@ -59,13 +54,12 @@
       <input type="text" id="accountNumber" placeholder="Account Number" />
       <input type="text" id="accountName" placeholder="Account Name" />
       <button onclick="requestWithdrawal()">Request Withdrawal</button>
-      <div class="error" id="withdrawError"></div>
+      <div id="withdrawError" style="color:#f87171; margin-top:10px;"></div>
     </div>
 
     <div class="card">
-      <h2>Your Tasks <span style="float:right; font-size:0.9rem; color:#16a34a;">₦500 each</span></h2>
+      <h2>Your Tasks</h2>
       <div id="tasksList">Loading tasks...</div>
-      <div class="error" id="error"></div>
     </div>
   </div>
 
@@ -75,40 +69,33 @@
 
     async function loadUser() {
       try {
-        const res = await fetch('/api/user/me', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const res = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
         const user = await res.json();
-        if (!res.ok) throw new Error(user.error);
+        if (!res.ok) throw new Error();
         document.getElementById('userName').textContent = user.name || 'User';
         document.getElementById('taskWallet').textContent = '₦' + (user.taskWallet || 0).toLocaleString();
         document.getElementById('referralWallet').textContent = '₦' + (user.referralWallet || 0).toLocaleString();
       } catch (e) {
-        localStorage.removeItem('zbyte_token');
-        localStorage.removeItem('token');
+        localStorage.clear();
         window.location.href = '/login.html';
       }
     }
 
     async function loadTasks() {
       try {
-        const res = await fetch('/api/tasks', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const res = await fetch('/api/tasks', { headers: { 'Authorization': 'Bearer ' + token } });
         const tasks = await res.json();
         const container = document.getElementById('tasksList');
         if (!tasks.length) {
-          container.innerHTML = '<p>No tasks available right now.</p>';
+          container.innerHTML = '<p>No tasks available.</p>';
           return;
         }
         container.innerHTML = tasks.map(task => `
           <div class="task">
-            <div class="task-info">
-              <h3>${task.title}</h3>
-              <p>${task.description}</p>
-              <span class="reward">₦${task.reward}</span>
-            </div>
-            <button onclick="completeTask('${task.id}')">Start</button>
+            <strong>${task.title}</strong><br>
+            <small>${task.description}</small><br>
+            <span style="color:#22c55e; font-weight:700;">₦${task.reward}</span>
+            <button style="float:right;" onclick="completeTask('${task.id}')">Start</button>
           </div>
         `).join('');
       } catch (e) {
@@ -117,53 +104,45 @@
     }
 
     async function completeTask(taskId) {
-      const errorEl = document.getElementById('error');
-      errorEl.textContent = '';
       try {
         const res = await fetch('/api/tasks/complete', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({ taskId })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed');
-        alert('Task completed! ₦' + data.reward + ' added to your wallet.');
+        if (!res.ok) throw new Error(data.error);
+        alert('Task completed! ₦' + data.reward + ' added.');
         loadUser();
         loadTasks();
       } catch (err) {
-        errorEl.textContent = err.message;
+        alert(err.message);
       }
     }
 
     async function requestWithdrawal() {
       const errorEl = document.getElementById('withdrawError');
       errorEl.textContent = '';
-      const walletType = document.getElementById('walletType').value;
-      const amount = document.getElementById('amount').value;
-      const bankName = document.getElementById('bankName').value;
-      const accountNumber = document.getElementById('accountNumber').value;
-      const accountName = document.getElementById('accountName').value;
-
-      if (!amount || !bankName || !accountNumber || !accountName) {
+      const data = {
+        walletType: document.getElementById('walletType').value,
+        amount: document.getElementById('amount').value,
+        bankName: document.getElementById('bankName').value,
+        accountNumber: document.getElementById('accountNumber').value,
+        accountName: document.getElementById('accountName').value
+      };
+      if (!data.amount || !data.bankName || !data.accountNumber || !data.accountName) {
         errorEl.textContent = 'Please fill all fields';
         return;
       }
-
       try {
         const res = await fetch('/api/withdraw', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-          },
-          body: JSON.stringify({ walletType, amount, bankName, accountNumber, accountName })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify(data)
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed');
-        alert('Withdrawal request submitted! Waiting for admin approval.');
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error);
+        alert('Withdrawal request submitted!');
         document.getElementById('amount').value = '';
         document.getElementById('bankName').value = '';
         document.getElementById('accountNumber').value = '';
@@ -174,8 +153,7 @@
     }
 
     function logout() {
-      localStorage.removeItem('zbyte_token');
-      localStorage.removeItem('token');
+      localStorage.clear();
       window.location.href = '/login.html';
     }
 
