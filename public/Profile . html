@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Settings – ZBYTE</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #050510;
+      color: #ffffff;
+      min-height: 100vh;
+      background-image: radial-gradient(circle at 50% 0%, rgba(80, 40, 200, 0.15) 0%, transparent 50%);
+    }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; background: rgba(10,10,25,0.9);
+      border-bottom: 1px solid rgba(124,58,237,0.2);
+    }
+    .logo { font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg,#7c3aed,#3b82f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .container { max-width: 440px; margin: 20px auto; padding: 0 16px; }
+    h1 { font-size: 1.5rem; margin-bottom: 6px; }
+    .subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 24px; }
+    .user-card {
+      background: rgba(15,15,35,0.8);
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg,#7c3aed,#4f46e5);
+      display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 700;
+    }
+    .menu-item {
+      background: rgba(15,15,35,0.8);
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .menu-item:hover { border-color: #7c3aed; }
+    .menu-left { display: flex; align-items: center; gap: 12px; }
+    .icon { width: 36px; height: 36px; background: rgba(124,58,237,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .logout { border-color: rgba(239,68,68,0.4); }
+    .logout .icon { background: rgba(239,68,68,0.2); }
+    .back { color: #a78bfa; text-decoration: none; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">ZBYTE</div>
+    <a href="/dashboard.html" class="back">← Back</a>
+  </header>
+
+  <div class="container">
+    <h1>PROFILE SETTINGS</h1>
+    <p class="subtitle">Manage your account and preferences</p>
+
+    <div class="user-card">
+      <div class="avatar" id="avatar">U</div>
+      <div>
+        <div id="userName" style="font-weight:600; font-size:1.1rem;">User</div>
+        <div style="font-size:0.8rem; color:#a78bfa; margin-top:2px;">ZBYTE User</div>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="alert('Edit Profile coming soon')">
+      <div class="menu-left">
+        <div class="icon">👤</div>
+        <div>
+          <div>Edit Profile</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Update your profile picture and bio</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
+    <div class="menu-item" onclick="alert('Change Name coming soon')">
+      <div class="menu-left">
+        <div class="icon">✏️</div>
+        <div>
+          <div>Change Name</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Update your display name</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
+    <div class="menu-item" onclick="alert('Account Settings coming soon')">
+      <div class="menu-left">
+        <div class="icon">⚙️</div>
+        <div>
+          <div>Account Settings</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Manage account details</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
+    <div class="menu-item" onclick="alert('Security coming soon')">
+      <div class="menu-left">
+        <div class="icon">🔒</div>
+        <div>
+          <div>Security</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Password and security settings</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
+    <div class="menu-item" onclick="alert('Notifications coming soon')">
+      <div class="menu-left">
+        <div class="icon">🔔</div>
+        <div>
+          <div>Notifications</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Choose what you receive</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
+    <div class="menu-item logout" onclick="logout()">
+      <div class="menu-left">
+        <div class="icon">🚪</div>
+        <div>
+          <div style="color:#f87171;">Logout</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Sign out of your account</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
+    if (!token) window.location.href = '/login.html';
+
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
+        const user = await res.json();
+        if (!res.ok) throw new Error();
+        const name = user.name || 'User';
+        document.getElementById('userName').textContent = name;
+        document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
+      } catch (e) {
+        localStorage.clear();
+        window.location.href = '/login.html';
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadUser();
+  </script>
+</body>
+</html>
