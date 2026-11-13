@@ -6,30 +6,27 @@
   <title>Dashboard – Zbyte</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%); color: #f8fafc; min-height: 100vh; }
-    header { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .logo { font-weight: 800; font-size: 1.6rem; color: #22c55e; }
-    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .card { background: rgba(255,255,255,0.08); border-radius: 20px; padding: 24px; border: 1px solid rgba(255,255,255,0.1); }
-    .card.full { grid-column: 1 / -1; }
-    h2 { margin-bottom: 12px; font-size: 1.1rem; color: #e2e8f0; }
-    .balance { font-size: 2.2rem; font-weight: 800; color: #22c55e; }
-    .small { font-size: 0.85rem; color: #94a3b8; margin-top: 6px; }
-    .task { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; }
+    header { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .logo { font-weight: 800; font-size: 1.5rem; color: #16a34a; }
+    .container { max-width: 540px; margin: 28px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 20px; padding: 24px; margin-bottom: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    h2 { margin-bottom: 12px; font-size: 1.15rem; }
+    .balance { font-size: 2.1rem; font-weight: 800; color: #16a34a; }
+    .small { font-size: 0.85rem; color: #64748b; margin-top: 6px; }
+    .task { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
     .task:last-child { border-bottom: none; }
-    button { background: #22c55e; color: #0f172a; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; cursor: pointer; }
-    button:hover { background: #16a34a; }
-    input, select { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; color: white; margin-bottom: 12px; }
-    .logout { background: #ef4444; color: white; }
-    @media (max-width: 700px) {
-      .container { grid-template-columns: 1fr; }
-    }
+    button { background: #16a34a; color: white; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #15803d; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 12px; font-size: 1rem; }
+    .logout { background: #ef4444; }
+    .error { color: #dc2626; margin-top: 10px; font-size: 0.9rem; }
   </style>
 </head>
 <body>
   <header>
     <div class="logo">Zbyte</div>
-    <div style="display:flex; align-items:center; gap:16px;">
+    <div style="display:flex; align-items:center; gap:14px;">
       <span id="userName">User</span>
       <button class="logout" onclick="logout()">Logout</button>
     </div>
@@ -48,7 +45,7 @@
       <div class="small">Minimum withdrawal: ₦10,000</div>
     </div>
 
-    <div class="card full">
+    <div class="card">
       <h2>Request Withdrawal</h2>
       <select id="walletType">
         <option value="task">Task Wallet</option>
@@ -59,11 +56,11 @@
       <input type="text" id="accountNumber" placeholder="Account Number" />
       <input type="text" id="accountName" placeholder="Account Name" />
       <button onclick="requestWithdrawal()">Request Withdrawal</button>
-      <div id="withdrawError" style="color:#f87171; margin-top:12px;"></div>
+      <div class="error" id="withdrawError"></div>
     </div>
 
-    <div class="card full">
-      <h2>Your Tasks <span style="float:right; color:#22c55e;">₦500 each</span></h2>
+    <div class="card">
+      <h2>Your Tasks <span style="float:right; color:#16a34a; font-size:0.9rem;">₦500 each</span></h2>
       <div id="tasksList">Loading tasks...</div>
     </div>
   </div>
@@ -99,8 +96,8 @@
           <div class="task">
             <div>
               <strong>${task.title}</strong><br>
-              <small style="color:#94a3b8;">${task.description}</small><br>
-              <span style="color:#22c55e; font-weight:700;">₦${task.reward}</span>
+              <small style="color:#64748b;">${task.description}</small><br>
+              <span style="color:#16a34a; font-weight:700;">₦${task.reward}</span>
             </div>
             <button onclick="completeTask('${task.id}')">Start</button>
           </div>
@@ -168,4 +165,4 @@
     loadTasks();
   </script>
 </body>
-        </html>
+</html>
