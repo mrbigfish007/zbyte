@@ -6,25 +6,30 @@
   <title>Dashboard – Zbyte</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; }
-    header { background: #1e2937; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-weight: 800; font-size: 1.5rem; color: #22c55e; }
-    .container { max-width: 500px; margin: 20px auto; padding: 0 16px; }
-    .card { background: #1e2937; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
-    h2 { margin-bottom: 8px; color: #f1f5f9; }
-    .balance { font-size: 2rem; font-weight: 800; color: #22c55e; }
-    .small { font-size: 0.85rem; color: #94a3b8; }
-    .task { padding: 14px 0; border-bottom: 1px solid #334155; }
+    body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%); color: #f8fafc; min-height: 100vh; }
+    header { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .logo { font-weight: 800; font-size: 1.6rem; color: #22c55e; }
+    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: rgba(255,255,255,0.08); border-radius: 20px; padding: 24px; border: 1px solid rgba(255,255,255,0.1); }
+    .card.full { grid-column: 1 / -1; }
+    h2 { margin-bottom: 12px; font-size: 1.1rem; color: #e2e8f0; }
+    .balance { font-size: 2.2rem; font-weight: 800; color: #22c55e; }
+    .small { font-size: 0.85rem; color: #94a3b8; margin-top: 6px; }
+    .task { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .task:last-child { border-bottom: none; }
-    button { background: #22c55e; color: #0f172a; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; }
-    input, select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; color: white; margin-bottom: 10px; }
+    button { background: #22c55e; color: #0f172a; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+    button:hover { background: #16a34a; }
+    input, select { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; color: white; margin-bottom: 12px; }
     .logout { background: #ef4444; color: white; }
+    @media (max-width: 700px) {
+      .container { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <header>
     <div class="logo">Zbyte</div>
-    <div>
+    <div style="display:flex; align-items:center; gap:16px;">
       <span id="userName">User</span>
       <button class="logout" onclick="logout()">Logout</button>
     </div>
@@ -43,7 +48,7 @@
       <div class="small">Minimum withdrawal: ₦10,000</div>
     </div>
 
-    <div class="card">
+    <div class="card full">
       <h2>Request Withdrawal</h2>
       <select id="walletType">
         <option value="task">Task Wallet</option>
@@ -54,11 +59,11 @@
       <input type="text" id="accountNumber" placeholder="Account Number" />
       <input type="text" id="accountName" placeholder="Account Name" />
       <button onclick="requestWithdrawal()">Request Withdrawal</button>
-      <div id="withdrawError" style="color:#f87171; margin-top:10px;"></div>
+      <div id="withdrawError" style="color:#f87171; margin-top:12px;"></div>
     </div>
 
-    <div class="card">
-      <h2>Your Tasks</h2>
+    <div class="card full">
+      <h2>Your Tasks <span style="float:right; color:#22c55e;">₦500 each</span></h2>
       <div id="tasksList">Loading tasks...</div>
     </div>
   </div>
@@ -87,15 +92,17 @@
         const tasks = await res.json();
         const container = document.getElementById('tasksList');
         if (!tasks.length) {
-          container.innerHTML = '<p>No tasks available.</p>';
+          container.innerHTML = '<p>No tasks available right now.</p>';
           return;
         }
         container.innerHTML = tasks.map(task => `
           <div class="task">
-            <strong>${task.title}</strong><br>
-            <small>${task.description}</small><br>
-            <span style="color:#22c55e; font-weight:700;">₦${task.reward}</span>
-            <button style="float:right;" onclick="completeTask('${task.id}')">Start</button>
+            <div>
+              <strong>${task.title}</strong><br>
+              <small style="color:#94a3b8;">${task.description}</small><br>
+              <span style="color:#22c55e; font-weight:700;">₦${task.reward}</span>
+            </div>
+            <button onclick="completeTask('${task.id}')">Start</button>
           </div>
         `).join('');
       } catch (e) {
@@ -161,4 +168,4 @@
     loadTasks();
   </script>
 </body>
-</html>
+        </html>
