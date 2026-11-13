@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin – Zbyte | MR BIG FSH</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; }
-  </style>
+  <style>body { font-family: system-ui, -apple-system, sans-serif; }</style>
 </head>
 <body class="bg-gray-100">
   <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
@@ -17,12 +15,10 @@
     </div>
     <div class="flex gap-4 text-sm">
       <a href="/" class="hover:underline">View site</a>
-      <a href="/about.html" class="hover:underline">About</a>
       <button onclick="logout()" class="text-red-400 hover:underline">Logout</button>
     </div>
   </header>
 
-  <!-- Login Gate -->
   <div id="loginGate" class="max-w-md mx-auto mt-16 bg-white rounded-2xl p-8 shadow">
     <h1 class="text-2xl font-bold mb-2">Admin Login</h1>
     <p class="text-sm text-gray-600 mb-6">Only the Founder/Admin account can access this panel.</p>
@@ -32,39 +28,18 @@
     <div id="adminErr" class="text-red-600 text-sm mt-3 hidden"></div>
   </div>
 
-  <!-- Admin Content -->
   <div id="adminContent" class="hidden max-w-6xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-2">Dashboard</h1>
-    <p class="text-gray-600 mb-6">All members and activity</p>
-
-    <div class="flex gap-3 mb-6">
-      <button onclick="runMonthlyFees()" class="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium">Run Monthly Fees</button>
-      <button onclick="loadAll()" class="bg-white border px-4 py-2 rounded-lg">Refresh</button>
-    </div>
-
-    <div id="stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"></div>
+    <h1 class="text-3xl font-bold mb-6">Admin Dashboard</h1>
+    <button onclick="loadAll()" class="bg-white border px-4 py-2 rounded-lg mb-6">Refresh</button>
 
     <div class="bg-white rounded-xl border mb-6">
-      <div class="p-4 border-b flex flex-col sm:flex-row gap-3">
-        <input id="search" oninput="filterUsers()" placeholder="Search name, email, phone or referral code..." class="flex-1 border rounded-lg px-4 py-2" />
-        <select id="tierFilter" onchange="filterUsers()" class="border rounded-lg px-3 py-2">
-          <option value="">All tiers</option>
-          <option value="premium">Premium</option>
-          <option value="silver">Silver</option>
-          <option value="gold">Gold</option>
-        </select>
-        <select id="statusFilter" onchange="filterUsers()" class="border rounded-lg px-3 py-2">
-          <option value="">All status</option>
-          <option value="active">Activated</option>
-          <option value="inactive">Not activated</option>
-        </select>
-      </div>
-      <div id="usersTable" class="overflow-x-auto"></div>
+      <div class="p-4 border-b font-semibold">Pending Withdrawals</div>
+      <div id="withdrawalsList"></div>
     </div>
 
     <div class="bg-white rounded-xl border">
-      <div class="p-4 border-b font-semibold">Pending Withdrawals</div>
-      <div id="withdrawalsList"></div>
+      <div class="p-4 border-b font-semibold">All Members</div>
+      <div id="usersTable" class="overflow-x-auto"></div>
     </div>
   </div>
 
@@ -89,14 +64,8 @@
         body: JSON.stringify({ identifier, password })
       });
       const data = await res.json();
-      if (!res.ok) {
-        showErr(data.error || 'Login failed');
-        return;
-      }
-      if (!data.user.isAdmin) {
-        showErr('This account is not an admin.');
-        return;
-      }
+      if (!res.ok) return showErr(data.error || 'Login failed');
+      if (!data.user.isAdmin) return showErr('This account is not an admin.');
       token = data.token;
       localStorage.setItem('zbyte_token', token);
       showAdmin();
@@ -116,90 +85,88 @@
 
     async function loadAll() {
       try {
-        const [statsRes, usersRes] = await Promise.all([
-          fetch('/api/admin/stats', { headers: headers() }),
-          fetch('/api/admin/users', { headers: headers() })
+        const [usersRes, withdrawalsRes] = await Promise.all([
+          fetch('/api/admin/users', { headers: headers() }),
+          fetch('/api/admin/withdrawals', { headers: headers() })
         ]);
 
-        if (statsRes.status === 401 || statsRes.status === 403) {
+        if (usersRes.status === 401 || usersRes.status === 403) {
           document.getElementById('loginGate').classList.remove('hidden');
           document.getElementById('adminContent').classList.add('hidden');
           return;
         }
 
-        const stats = await statsRes.json();
         allUsers = await usersRes.json() || [];
+        const withdrawals = await withdrawalsRes.json() || [];
 
-        document.getElementById('stats').innerHTML = `
-          <div class="bg-white rounded-xl border p-5">
-            <div class="text-xs text-gray-500 uppercase">Total Members</div>
-            <div class="text-2xl font-bold mt-1">${stats.totalMembers || 0}</div>
-          </div>
-          <div class="bg-white rounded-xl border p-5">
-            <div class="text-xs text-gray-500 uppercase">Activated Memberships</div>
-            <div class="text-2xl font-bold mt-1 text-green-600">${stats.activatedMemberships || 0}</div>
-          </div>
-          <div class="bg-white rounded-xl border p-5">
-            <div class="text-xs text-gray-500 uppercase">Pending Withdrawals</div>
-            <div class="text-2xl font-bold mt-1">0</div>
-          </div>
-          <div class="bg-white rounded-xl border p-5">
-            <div class="text-xs text-gray-500 uppercase">Task Rewards Paid</div>
-            <div class="text-2xl font-bold mt-1">${naira(stats.taskRewardsPaid)}</div>
-          </div>
+        // Withdrawals
+        const pending = withdrawals.filter(w => w.status === 'pending');
+        document.getElementById('withdrawalsList').innerHTML = pending.length
+          ? pending.map(w => {
+              const user = allUsers.find(u => u.id === w.userId);
+              return `
+                <div class="px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div class="font-medium">\( {naira(w.amount)} <span class="text-xs text-gray-500">( \){w.walletType} wallet)</span></div>
+                    <div class="text-xs text-gray-500 mt-0.5">
+                      ${user ? user.name : 'Unknown'} • ${w.accountName} • ${w.bankName} • ${w.accountNumber}
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button onclick="updateWithdrawal('${w.id}', 'approved')" class="bg-green-600 text-white text-xs px-3 py-1 rounded">Approve</button>
+                    <button onclick="updateWithdrawal('${w.id}', 'rejected')" class="bg-red-600 text-white text-xs px-3 py-1 rounded">Reject</button>
+                  </div>
+                </div>
+              `;
+            }).join('')
+          : '<div class="p-5 text-gray-500">No pending withdrawals</div>';
+
+        // Users table
+        const rows = allUsers.map(u => `
+          <tr class="border-t">
+            <td class="px-4 py-3">${u.name || '-'}</td>
+            <td class="px-4 py-3">${u.email}</td>
+            <td class="px-4 py-3 capitalize">${u.tier || '-'}</td>
+            <td class="px-4 py-3">${u.membershipActive ? '<span class="text-green-600">Active</span>' : '<span class="text-gray-500">Pending</span>'}</td>
+            <td class="px-4 py-3">${naira(u.taskWallet)}</td>
+            <td class="px-4 py-3">${naira(u.referralWallet)}</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('usersTable').innerHTML = `
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left">Name</th>
+                <th class="px-4 py-3 text-left">Email</th>
+                <th class="px-4 py-3 text-left">Tier</th>
+                <th class="px-4 py-3 text-left">Status</th>
+                <th class="px-4 py-3 text-left">Task Wallet</th>
+                <th class="px-4 py-3 text-left">Referral Wallet</th>
+              </tr>
+            </thead>
+            <tbody>${rows || '<tr><td colspan="6" class="p-5 text-center text-gray-500">No members</td></tr>'}</tbody>
+          </table>
         `;
-
-        filterUsers();
-        document.getElementById('withdrawalsList').innerHTML = '<div class="p-5 text-gray-500">No pending withdrawals</div>';
       } catch (e) {
         console.error(e);
       }
     }
 
-    function filterUsers() {
-      const q = (document.getElementById('search').value || '').toLowerCase();
-      const tier = document.getElementById('tierFilter').value;
-      const status = document.getElementById('statusFilter').value;
-
-      let filtered = allUsers.filter(u => {
-        const matchQ = !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.phone || '').includes(q) || (u.referralCode || '').toLowerCase().includes(q);
-        const matchTier = !tier || u.tier === tier;
-        const matchStatus = !status || (status === 'active' ? u.membershipActive : !u.membershipActive);
-        return matchQ && matchTier && matchStatus;
+    async function updateWithdrawal(id, status) {
+      if (!confirm(`Are you sure you want to ${status} this withdrawal?`)) return;
+      const res = await fetch('/api/admin/withdrawals/update', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ id, status })
       });
-
-      const rows = filtered.map(u => `
-        <tr class="border-t">
-          <td class="px-4 py-3">${u.name || '-'}</td>
-          <td class="px-4 py-3">${u.email}</td>
-          <td class="px-4 py-3">${u.phone || '-'}</td>
-          <td class="px-4 py-3 capitalize">${u.tier}</td>
-          <td class="px-4 py-3">${u.membershipActive ? '<span class="text-green-600">Active</span>' : '<span class="text-gray-500">Pending</span>'}</td>
-          <td class="px-4 py-3">${naira(u.taskWallet)}</td>
-          <td class="px-4 py-3">${naira(u.referralWallet)}</td>
-          <td class="px-4 py-3">${u.tasksCompleted || 0}</td>
-          <td class="px-4 py-3">${u.referralCode || '-'}</td>
-        </tr>
-      `).join('');
-
-      document.getElementById('usersTable').innerHTML = `
-        <table class="w-full text-sm">
-          <thead class="bg-gray-50 text-left">
-            <tr>
-              <th class="px-4 py-3">Name</th>
-              <th class="px-4 py-3">Email</th>
-              <th class="px-4 py-3">Phone</th>
-              <th class="px-4 py-3">Tier</th>
-              <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">Task Wallet</th>
-              <th class="px-4 py-3">Referral Wallet</th>
-              <th class="px-4 py-3">Tasks</th>
-              <th class="px-4 py-3">Referral Code</th>
-            </tr>
-          </thead>
-          <tbody>${rows || '<tr><td colspan="9" class="p-5 text-center text-gray-500">No members found</td></tr>'}</tbody>
-        </table>
-      `;
+      const data = await res.json();
+      if (res.ok) {
+        alert('Updated successfully');
+        loadAll();
+      } else {
+        alert(data.error || 'Failed');
+      }
     }
 
     function logout() {
@@ -207,13 +174,7 @@
       location.reload();
     }
 
-    async function runMonthlyFees() {
-      alert('Monthly fee feature will be added later.');
-    }
-
-    if (token) {
-      showAdmin();
-    }
+    if (token) showAdmin();
   </script>
 </body>
 </html>
