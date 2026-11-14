@@ -54,6 +54,23 @@
     .logout { border-color: rgba(239,68,68,0.4); }
     .logout .icon { background: rgba(239,68,68,0.2); }
     .back { color: #a78bfa; text-decoration: none; font-size: 0.9rem; }
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center;
+    }
+    .modal-content {
+      background: #0f0f23; border: 1px solid rgba(124,58,237,0.4); border-radius: 16px;
+      padding: 24px; width: 90%; max-width: 360px;
+    }
+    .modal-content h3 { margin-bottom: 16px; }
+    .modal-content input {
+      width: 100%; background: rgba(30,30,60,0.6); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 10px; padding: 12px; color: white; margin-bottom: 12px;
+    }
+    .modal-content button { width: 100%; background: linear-gradient(135deg,#7c3aed,#4f46e5); color: white; border: none; padding: 12px; border-radius: 10px; margin-top: 8px; }
+    .close { float: right; cursor: pointer; font-size: 1.2rem; }
+    .success { color: #4ade80; margin-top: 10px; font-size: 0.9rem; }
+    .error { color: #f87171; margin-top: 10px; font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -74,18 +91,7 @@
       </div>
     </div>
 
-    <div class="menu-item" onclick="alert('Edit Profile coming soon')">
-      <div class="menu-left">
-        <div class="icon">👤</div>
-        <div>
-          <div>Edit Profile</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Update your profile picture and bio</div>
-        </div>
-      </div>
-      <span>›</span>
-    </div>
-
-    <div class="menu-item" onclick="alert('Change Name coming soon')">
+    <div class="menu-item" onclick="openModal('nameModal')">
       <div class="menu-left">
         <div class="icon">✏️</div>
         <div>
@@ -96,29 +102,18 @@
       <span>›</span>
     </div>
 
-    <div class="menu-item" onclick="alert('Account Settings coming soon')">
-      <div class="menu-left">
-        <div class="icon">⚙️</div>
-        <div>
-          <div>Account Settings</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Manage account details</div>
-        </div>
-      </div>
-      <span>›</span>
-    </div>
-
-    <div class="menu-item" onclick="alert('Security coming soon')">
+    <div class="menu-item" onclick="openModal('passwordModal')">
       <div class="menu-left">
         <div class="icon">🔒</div>
         <div>
-          <div>Security</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Password and security settings</div>
+          <div>Change Password</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Update your password</div>
         </div>
       </div>
       <span>›</span>
     </div>
 
-    <div class="menu-item" onclick="alert('Notifications coming soon')">
+    <div class="menu-item" onclick="alert('Notifications settings will be available soon.')">
       <div class="menu-left">
         <div class="icon">🔔</div>
         <div>
@@ -141,9 +136,35 @@
     </div>
   </div>
 
+  <!-- Change Name Modal -->
+  <div class="modal" id="nameModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('nameModal')">×</span>
+      <h3>Change Name</h3>
+      <input type="text" id="newName" placeholder="New name" />
+      <button onclick="updateName()">Update Name</button>
+      <div id="nameMsg"></div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div class="modal" id="passwordModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('passwordModal')">×</span>
+      <h3>Change Password</h3>
+      <input type="password" id="currentPassword" placeholder="Current password" />
+      <input type="password" id="newPassword" placeholder="New password" />
+      <button onclick="updatePassword()">Update Password</button>
+      <div id="passwordMsg"></div>
+    </div>
+  </div>
+
   <script>
     const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
     if (!token) window.location.href = '/login.html';
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     async function loadUser() {
       try {
@@ -156,6 +177,51 @@
       } catch (e) {
         localStorage.clear();
         window.location.href = '/login.html';
+      }
+    }
+
+    async function updateName() {
+      const newName = document.getElementById('newName').value.trim();
+      const msg = document.getElementById('nameMsg');
+      if (!newName) { msg.textContent = 'Please enter a name'; msg.className = 'error'; return; }
+
+      try {
+        const res = await fetch('/api/user/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ name: newName })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        msg.textContent = 'Name updated successfully!';
+        msg.className = 'success';
+        setTimeout(() => { closeModal('nameModal'); loadUser(); }, 1200);
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'error';
+      }
+    }
+
+    async function updatePassword() {
+      const current = document.getElementById('currentPassword').value;
+      const newPass = document.getElementById('newPassword').value;
+      const msg = document.getElementById('passwordMsg');
+      if (!current || !newPass) { msg.textContent = 'Fill both fields'; msg.className = 'error'; return; }
+
+      try {
+        const res = await fetch('/api/user/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ currentPassword: current, password: newPass })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        msg.textContent = 'Password updated successfully!';
+        msg.className = 'success';
+        setTimeout(() => closeModal('passwordModal'), 1200);
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'error';
       }
     }
 
