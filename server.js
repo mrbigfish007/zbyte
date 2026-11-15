@@ -256,28 +256,8 @@ const server = http.createServer(async (req, res) => {
       const user = getAuthUser(req);
       if (!user) return send(res, 401, { error: 'Unauthorized' });
       const body = await parseBody(req);
-      const { walletType, amount, bankName, accountNumber, accountName } = body;
-
-      if (!amount || !bankName || !accountNumber || !accountName) {
-        return send(res, 400, { error: 'Missing withdrawal details' });
-      }
-
-      const data = db.readDb();
-      if (!data.withdrawals) data.withdrawals = [];
-      data.withdrawals.push({
-        id: crypto.randomUUID(),
-        userId: user.id,
-        walletType,
-        amount: Number(amount),
-        bankName,
-        accountNumber,
-        accountName,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      });
-      db.writeDb(data);
-
-      return send(res, 200, { success: true, message: 'Withdrawal request submitted' });
+      const result = db.createWithdrawal(user.id, body);
+      return send(res, 200, result);
     }
 
     send(res, 404, { error: 'Not found' });
@@ -289,5 +269,6 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log('Server running on port', PORT);
+  try { db.ensureAdmin(); } catch (e) {}
   ensureDefaultTasks();
 });
