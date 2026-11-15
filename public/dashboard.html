@@ -12,7 +12,6 @@
       color: #ffffff;
       min-height: 100vh;
       padding-bottom: 80px;
-      background-image: radial-gradient(circle at 10% 10%, rgba(80,40,200,0.15) 0%, transparent 40%);
     }
     header {
       display: flex; justify-content: space-between; align-items: center;
@@ -28,8 +27,6 @@
       border-radius:16px; padding:18px; margin-bottom:16px;
       display:flex; justify-content:space-between; align-items:center;
     }
-    .campaign h2 { font-size:1.15rem; margin-bottom:6px; }
-    .campaign p { font-size:0.8rem; color:#c4b5fd; }
     .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
     .stat-card { background:rgba(15,15,35,0.85); border:1px solid rgba(124,58,237,0.25); border-radius:14px; padding:14px; }
     .stat-card .label { font-size:0.7rem; color:#94a3b8; }
@@ -41,11 +38,24 @@
     .referral-box input { flex:1; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:10px; color:white; }
     button { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:white; border:none; padding:10px 16px; border-radius:10px; font-weight:600; cursor:pointer; }
     .logout { background:#ef4444; padding:6px 12px; font-size:0.8rem; border:none; color:white; border-radius:8px; }
-    .nav { position:fixed; bottom:0; left:0; right:0; background:rgba(10,10,25,0.95); display:flex; justify-content:space-around; padding:10px 0; border-top:1px solid rgba(124,58,237,0.2); }
+    .nav { position:fixed; bottom:0; left:0; right:0; background:rgba(10,10,25,0.95); display:flex; justify-content:space-around; padding:12px 0; border-top:1px solid rgba(124,58,237,0.2); }
     .nav a { color:#94a3b8; text-decoration:none; font-size:0.7rem; text-align:center; }
     .section { display:none; }
     .section.active { display:block; }
-    .task { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .task-item {
+      background:rgba(15,15,35,0.85);
+      border:1px solid rgba(124,58,237,0.25);
+      border-radius:14px;
+      padding:14px;
+      margin-bottom:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .task-info { flex:1; }
+    .task-title { font-weight:600; margin-bottom:2px; }
+    .task-desc { font-size:0.75rem; color:#94a3b8; }
+    .task-reward { color:#4ade80; font-size:0.85rem; margin-top:4px; }
   </style>
 </head>
 <body>
@@ -68,7 +78,7 @@
         <div>
           <div style="font-size:0.65rem; background:#7c3aed; display:inline-block; padding:2px 8px; border-radius:10px; margin-bottom:6px;">NEW CAMPAIGN</div>
           <h2>Build. Earn. Elevate.</h2>
-          <p>Complete tasks, earn rewards and grow your income.</p>
+          <p style="font-size:0.8rem; color:#c4b5fd;">Complete tasks, earn rewards and grow your income.</p>
         </div>
         <div style="font-size:2.8rem; opacity:0.8;">Z</div>
       </div>
@@ -97,8 +107,8 @@
         <div class="quick">
           <div class="quick-btn" onclick="showSection('tasks')">⚡ New Task</div>
           <div class="quick-btn" onclick="copyReferral()">🎁 Invite Friends</div>
-          <div class="quick-btn" onclick="alert('Earnings Hub coming soon')">📈 Earnings</div>
-          <div class="quick-btn" onclick="alert('Claim Reward coming soon')">💰 Claim</div>
+          <div class="quick-btn" onclick="alert('Earnings Hub')">📈 Earnings</div>
+          <div class="quick-btn" onclick="alert('Claim Reward')">💰 Claim</div>
         </div>
       </div>
 
@@ -112,18 +122,31 @@
     </div>
 
     <div id="tasks" class="section">
-      <div class="card">
-        <h3 style="margin-bottom:12px;">Available Tasks</h3>
-        <div id="tasksList">Loading...</div>
+      <div style="margin-bottom:16px;">
+        <h1 style="font-size:1.8rem;">Complete Tasks</h1>
+        <p style="color:#94a3b8; font-size:0.9rem;">Complete tasks. Earn rewards. Level up.</p>
       </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.75rem; color:#94a3b8;">TASK PROGRESS</div>
+            <div style="font-size:1.3rem; font-weight:700;">0 / 5 <span style="font-size:0.8rem; font-weight:normal; color:#94a3b8;">Tasks Completed</span></div>
+          </div>
+          <div style="width:50px; height:50px; border:2px solid #7c3aed; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem;">LVL 1</div>
+        </div>
+      </div>
+
+      <div style="font-size:0.85rem; color:#facc15; margin-bottom:12px;">⚡ AVAILABLE TASKS</div>
+      <div id="tasksList">Loading...</div>
     </div>
   </div>
 
   <nav class="nav">
     <a href="#" onclick="showSection('home')"><div>🏠</div>Home</a>
     <a href="#" onclick="showSection('tasks')"><div>📋</div>Tasks</a>
-    <a href="#" onclick="showSection('home')"><div>👥</div>Referrals</a>
-    <a href="/profile.html"><div>💰</div>Wallet</a>
+    <a href="#" onclick="showSection('home')"><div>💰</div>Wallet</a>
+    <a href="/profile.html"><div>👤</div>Profile</a>
   </nav>
 
   <script>
@@ -165,21 +188,21 @@
         const tasks = await res.json();
         const container = document.getElementById('tasksList');
         if (!tasks || tasks.length === 0) {
-          container.innerHTML = '<p>No tasks available right now.</p>';
+          container.innerHTML = '<p style="color:#94a3b8;">No tasks available right now.</p>';
           return;
         }
         container.innerHTML = tasks.map(task => `
-          <div class="task">
-            <div>
-              <strong>${task.title || 'Task'}</strong><br>
-              <small style="color:#94a3b8;">${task.description || ''}</small><br>
-              <span style="color:#4ade80;">₦${task.reward || 500}</span>
+          <div class="task-item">
+            <div class="task-info">
+              <div class="task-title">${task.title || 'Task'}</div>
+              <div class="task-desc">${task.description || ''}</div>
+              <div class="task-reward">+₦${task.reward || 500}</div>
             </div>
-            <button onclick="alert('Task started! ₦${task.reward || 500} will be added.')">Start</button>
+            <button onclick="alert('Task started! You will earn ₦${task.reward || 500}')">GO →</button>
           </div>
         `).join('');
       } catch (e) {
-        document.getElementById('tasksList').innerHTML = '<p>Could not load tasks.</p>';
+        document.getElementById('tasksList').innerHTML = '<p style="color:#f87171;">Could not load tasks.</p>';
       }
     }
 
