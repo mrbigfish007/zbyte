@@ -12,6 +12,7 @@
       color: #ffffff;
       min-height: 100vh;
       padding-bottom: 80px;
+      background-image: radial-gradient(circle at 10% 10%, rgba(80,40,200,0.15) 0%, transparent 40%);
     }
     header {
       display: flex; justify-content: space-between; align-items: center;
@@ -70,11 +71,18 @@
       font-size:1rem; font-weight:600; margin:16px 0; cursor:pointer;
       box-shadow: 0 0 20px rgba(124,58,237,0.4);
     }
-    .tx-item {
-      display:flex; justify-content:space-between; align-items:center;
-      padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05);
+    .chart {
+      height: 120px;
+      background: linear-gradient(to top, rgba(124,58,237,0.2), transparent);
+      border-radius: 8px;
+      margin-top: 10px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      padding: 10px;
     }
-    .tx-item:last-child { border-bottom:none; }
+    .bar { width: 12px; background: #7c3aed; border-radius: 4px 4px 0 0; }
+    input, select { width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px; }
   </style>
 </head>
 <body>
@@ -112,6 +120,37 @@
           <div class="label">Referral Wallet</div>
           <div class="value" id="referralWallet">₦0</div>
         </div>
+        <div class="stat-card">
+          <div class="label">Tasks Done</div>
+          <div class="value">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Referral Code</div>
+          <div class="value" id="refCode" style="font-size:1rem;">ADMIN01</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Quick Actions</h3>
+        <div class="quick">
+          <div class="quick-btn" onclick="showSection('tasks')">⚡ New Task</div>
+          <div class="quick-btn" onclick="copyReferral()">🎁 Invite Friends</div>
+          <div class="quick-btn" onclick="showSection('wallet')">💰 Withdraw</div>
+          <div class="quick-btn" onclick="alert('Earnings Hub')">📈 Earnings</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Earnings Overview</h3>
+        <div class="chart">
+          <div class="bar" style="height:30%"></div>
+          <div class="bar" style="height:50%"></div>
+          <div class="bar" style="height:40%"></div>
+          <div class="bar" style="height:70%"></div>
+          <div class="bar" style="height:60%"></div>
+          <div class="bar" style="height:45%"></div>
+          <div class="bar" style="height:55%"></div>
+        </div>
       </div>
 
       <div class="card">
@@ -138,59 +177,21 @@
         <div style="font-size:0.85rem; color:#94a3b8;">Total Balance</div>
         <div class="balance-big" id="totalBalance">₦0.00</div>
         <div style="font-size:0.75rem; color:#a78bfa;">🔒 Secure • Private • Fast</div>
-        <button class="withdraw-btn" onclick="showWithdraw()">💳 Withdraw</button>
-      </div>
-
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3>Recent Transactions</h3>
-          <span style="color:#a78bfa; font-size:0.8rem;">View All ›</span>
-        </div>
-        <div id="transactions">
-          <div class="tx-item">
-            <div>
-              <div>Withdrawal</div>
-              <div style="font-size:0.7rem; color:#94a3b8;">May 24, 2025 • 10:45 AM</div>
-            </div>
-            <div style="text-align:right;">
-              <div style="color:#f87171;">- ₦2,000.00</div>
-              <div style="font-size:0.7rem; color:#4ade80;">Successful</div>
-            </div>
-          </div>
-          <div class="tx-item">
-            <div>
-              <div>Received</div>
-              <div style="font-size:0.7rem; color:#94a3b8;">May 23, 2025 • 08:30 PM</div>
-            </div>
-            <div style="text-align:right;">
-              <div style="color:#4ade80;">+ ₦3,500.00</div>
-              <div style="font-size:0.7rem; color:#4ade80;">Successful</div>
-            </div>
-          </div>
-          <div class="tx-item">
-            <div>
-              <div>Task Reward</div>
-              <div style="font-size:0.7rem; color:#94a3b8;">May 22, 2025 • 03:15 PM</div>
-            </div>
-            <div style="text-align:right;">
-              <div style="color:#4ade80;">+ ₦500.00</div>
-              <div style="font-size:0.7rem; color:#4ade80;">Successful</div>
-            </div>
-          </div>
-        </div>
+        <button class="withdraw-btn" onclick="document.getElementById('withdrawForm').style.display='block'">💳 Withdraw</button>
       </div>
 
       <div class="card" id="withdrawForm" style="display:none;">
         <h3 style="margin-bottom:12px;">Request Withdrawal</h3>
-        <select id="walletType" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;">
+        <select id="walletType">
           <option value="task">Task Wallet</option>
           <option value="referral">Referral Wallet</option>
         </select>
-        <input type="number" id="amount" placeholder="Amount" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;" />
-        <input type="text" id="bankName" placeholder="Bank Name" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;" />
-        <input type="text" id="accountNumber" placeholder="Account Number" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;" />
-        <input type="text" id="accountName" placeholder="Account Name" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;" />
+        <input type="number" id="amount" placeholder="Amount" />
+        <input type="text" id="bankName" placeholder="Bank Name" />
+        <input type="text" id="accountNumber" placeholder="Account Number" />
+        <input type="text" id="accountName" placeholder="Account Name" />
         <button onclick="requestWithdrawal()" style="width:100%;">Submit Withdrawal</button>
+        <div id="withdrawError" style="color:#f87171; margin-top:10px;"></div>
       </div>
     </div>
   </div>
@@ -223,10 +224,6 @@
       document.getElementById(section).classList.add('active');
     }
 
-    function showWithdraw() {
-      document.getElementById('withdrawForm').style.display = 'block';
-    }
-
     function copyReferral() {
       const input = document.getElementById('referralLink');
       input.select();
@@ -246,6 +243,7 @@
         document.getElementById('taskWallet').textContent = '₦' + task.toLocaleString();
         document.getElementById('referralWallet').textContent = '₦' + referral.toLocaleString();
         document.getElementById('totalBalance').textContent = '₦' + (task + referral).toLocaleString() + '.00';
+        document.getElementById('refCode').textContent = user.referralCode || 'ADMIN01';
         document.getElementById('referralLink').value = 'https://zbyte-production.up.railway.app/register.html?ref=' + (user.referralCode || 'ADMIN01');
       } catch (e) {
         document.getElementById('welcomeName').textContent = 'User';
@@ -277,8 +275,43 @@
     }
 
     async function requestWithdrawal() {
-      alert('Withdrawal request submitted! (Demo mode)');
-      document.getElementById('withdrawForm').style.display = 'none';
+      const errorEl = document.getElementById('withdrawError');
+      errorEl.textContent = '';
+
+      const data = {
+        walletType: document.getElementById('walletType').value,
+        amount: document.getElementById('amount').value,
+        bankName: document.getElementById('bankName').value,
+        accountNumber: document.getElementById('accountNumber').value,
+        accountName: document.getElementById('accountName').value
+      };
+
+      if (!data.amount || !data.bankName || !data.accountNumber || !data.accountName) {
+        errorEl.textContent = 'Please fill all fields';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/withdraw', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': 'Bearer ' + token 
+          },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
+        alert('Withdrawal request submitted successfully!');
+        document.getElementById('amount').value = '';
+        document.getElementById('bankName').value = '';
+        document.getElementById('accountNumber').value = '';
+        document.getElementById('accountName').value = '';
+        document.getElementById('withdrawForm').style.display = 'none';
+        loadUser();
+      } catch (err) {
+        errorEl.textContent = err.message;
+      }
     }
 
     function logout() {
