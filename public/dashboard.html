@@ -12,14 +12,14 @@
       color: #ffffff;
       min-height: 100vh;
       padding-bottom: 80px;
-      background-image: radial-gradient(circle at 10% 10%, rgba(80,40,200,0.15) 0%, transparent 40%);
     }
     header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 16px 20px;
     }
     .logo { font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg,#7c3aed,#3b82f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    .avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#4f46e5); display:flex; align-items:center; justify-content:center; font-weight:700; }
+    .avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#4f46e5); display:flex; align-items:center; justify-content:center; font-weight:700; overflow:hidden; }
+    .avatar img { width:100%; height:100%; object-fit:cover; }
     .container { max-width:480px; margin:0 auto; padding:10px 16px; }
     .welcome h1 { font-size:1.6rem; margin-bottom:4px; }
     .welcome p { color:#94a3b8; font-size:0.85rem; margin-bottom:16px; }
@@ -95,7 +95,6 @@
   </header>
 
   <div class="container">
-    <!-- HOME SECTION -->
     <div id="home" class="section active">
       <div class="welcome">
         <h1>Hello, <span id="welcomeName">User</span> ✨</h1>
@@ -162,7 +161,6 @@
       </div>
     </div>
 
-    <!-- TASKS SECTION -->
     <div id="tasks" class="section">
       <div style="margin-bottom:16px;">
         <h1 style="font-size:1.8rem;">Complete Tasks</h1>
@@ -171,7 +169,6 @@
       <div id="tasksList">Loading...</div>
     </div>
 
-    <!-- WALLET SECTION -->
     <div id="wallet" class="section">
       <div style="text-align:center; margin-bottom:20px;">
         <div style="font-size:0.85rem; color:#94a3b8;">Total Balance</div>
@@ -237,7 +234,12 @@
         const user = await res.json();
         const name = user.name || 'User';
         document.getElementById('welcomeName').textContent = name.split(' ')[0];
-        document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
+        const avatar = document.getElementById('avatar');
+        if (user.profilePicture) {
+          avatar.innerHTML = `<img src="${user.profilePicture}" alt="Profile" />`;
+        } else {
+          avatar.textContent = name.charAt(0).toUpperCase();
+        }
         const task = user.taskWallet || 0;
         const referral = user.referralWallet || 0;
         document.getElementById('taskWallet').textContent = '₦' + task.toLocaleString();
