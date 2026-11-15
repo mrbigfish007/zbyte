@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile – ZBYTE</title>
+  <title>Profile Settings – ZBYTE</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -11,15 +11,12 @@
       background: #050510;
       color: #ffffff;
       min-height: 100vh;
-      background-image: radial-gradient(circle at 50% 0%, rgba(80, 40, 200, 0.18) 0%, transparent 50%);
     }
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 16px 20px;
-      background: rgba(10, 10, 25, 0.9);
-      border-bottom: 1px solid rgba(124, 58, 237, 0.2);
     }
     .logo {
       font-size: 1.4rem;
@@ -28,73 +25,85 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .back { color: #a78bfa; text-decoration: none; font-size: 0.9rem; }
-    .container { max-width: 440px; margin: 24px auto; padding: 0 16px; }
+    .home-btn {
+      width: 40px; height: 40px;
+      background: rgba(124,58,237,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none; color: white; font-size: 1.2rem;
+    }
+    .container { max-width: 440px; margin: 10px auto; padding: 0 16px 30px; }
+    .title { font-size: 0.85rem; color: #a78bfa; letter-spacing: 1px; margin-bottom: 4px; }
+    .subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
     .user-card {
-      background: rgba(15, 15, 35, 0.85);
-      border: 1px solid rgba(124, 58, 237, 0.3);
-      border-radius: 20px;
-      padding: 24px;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      font-weight: 700;
-      margin: 0 auto 12px;
-    }
-    .user-card h2 { font-size: 1.3rem; margin-bottom: 4px; }
-    .user-card p { color: #a78bfa; font-size: 0.85rem; }
-    .menu-item {
-      background: rgba(15, 15, 35, 0.85);
-      border: 1px solid rgba(124, 58, 237, 0.25);
+      background: rgba(15,15,35,0.9);
+      border: 1px solid rgba(124,58,237,0.3);
       border-radius: 16px;
       padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .avatar {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: linear-gradient(135deg,#1e1b4b,#312e81);
+      border: 2px solid #7c3aed;
+      display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+    }
+    .menu-item {
+      background: rgba(15,15,35,0.9);
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 14px;
+      padding: 14px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
       cursor: pointer;
-      transition: 0.2s;
     }
-    .menu-item:hover { border-color: #7c3aed; transform: translateY(-1px); }
-    .menu-left { display: flex; align-items: center; gap: 14px; }
+    .menu-left { display: flex; align-items: center; gap: 12px; }
     .icon {
-      width: 40px;
-      height: 40px;
-      background: rgba(124, 58, 237, 0.2);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
+      width: 38px; height: 38px;
+      background: rgba(124,58,237,0.2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
     }
-    .logout { border-color: rgba(239, 68, 68, 0.4); }
-    .logout .icon { background: rgba(239, 68, 68, 0.2); }
-    .arrow { color: #64748b; font-size: 1.2rem; }
+    .logout { border-color: rgba(239,68,68,0.4); }
+    .logout .icon { background: rgba(239,68,68,0.2); }
+    .footer { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #64748b; }
   </style>
 </head>
 <body>
   <header>
     <div class="logo">ZBYTE</div>
-    <a href="/dashboard.html" class="back">← Back</a>
+    <a href="/dashboard.html" class="home-btn">🏠</a>
   </header>
 
   <div class="container">
+    <div class="title">PROFILE SETTINGS</div>
+    <div class="subtitle">Manage your account and preferences.</div>
+
     <div class="user-card">
       <div class="avatar" id="avatar">U</div>
-      <h2 id="userName">User</h2>
-      <p>ZBYTE Member</p>
+      <div>
+        <div id="userName" style="font-weight:600; font-size:1.15rem;">User</div>
+        <div style="font-size:0.8rem; color:#a78bfa; margin-top:2px;">✓ ZBYTE User</div>
+      </div>
     </div>
 
-    <div class="menu-item" onclick="alert('Change Name feature coming soon')">
+    <div class="menu-item" onclick="alert('Edit Profile coming soon')">
+      <div class="menu-left">
+        <div class="icon">👤</div>
+        <div>
+          <div>Edit Profile</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Update your profile picture and bio</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
+    <div class="menu-item" onclick="alert('Change Name coming soon')">
       <div class="menu-left">
         <div class="icon">✏️</div>
         <div>
@@ -102,18 +111,29 @@
           <div style="font-size:0.75rem; color:#94a3b8;">Update your display name</div>
         </div>
       </div>
-      <span class="arrow">›</span>
+      <span>›</span>
     </div>
 
-    <div class="menu-item" onclick="alert('Change Password feature coming soon')">
+    <div class="menu-item" onclick="alert('Account Settings coming soon')">
+      <div class="menu-left">
+        <div class="icon">⚙️</div>
+        <div>
+          <div>Account Settings</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Manage account details and preferences</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
+    <div class="menu-item" onclick="alert('Security coming soon')">
       <div class="menu-left">
         <div class="icon">🔒</div>
         <div>
-          <div>Change Password</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Update your password</div>
+          <div>Security</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Password and security settings</div>
         </div>
       </div>
-      <span class="arrow">›</span>
+      <span>›</span>
     </div>
 
     <div class="menu-item" onclick="alert('Notifications coming soon')">
@@ -121,10 +141,10 @@
         <div class="icon">🔔</div>
         <div>
           <div>Notifications</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Manage alerts</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Choose what notifications you receive</div>
         </div>
       </div>
-      <span class="arrow">›</span>
+      <span>›</span>
     </div>
 
     <div class="menu-item logout" onclick="logout()">
@@ -135,8 +155,10 @@
           <div style="font-size:0.75rem; color:#94a3b8;">Sign out of your account</div>
         </div>
       </div>
-      <span class="arrow">›</span>
+      <span>›</span>
     </div>
+
+    <div class="footer">🔒 Your security is our priority. ZBYTE</div>
   </div>
 
   <script>
@@ -152,7 +174,6 @@
         document.getElementById('userName').textContent = name;
         document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
       } catch (e) {
-        // fallback
         document.getElementById('userName').textContent = 'MR BIG FSH';
         document.getElementById('avatar').textContent = 'M';
       }
