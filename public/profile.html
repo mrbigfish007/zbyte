@@ -23,12 +23,13 @@
     .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; }
     .modal-content { background: #0f0f23; border: 1px solid rgba(124,58,237,0.4); border-radius: 16px; padding: 24px; width: 90%; max-width: 360px; }
     .modal-content h3 { margin-bottom: 16px; }
-    .modal-content input { width: 100%; background: rgba(30,30,60,0.6); border: 1px solid rgba(124,58,237,0.3); border-radius: 10px; padding: 12px; color: white; margin-bottom: 12px; }
+    .modal-content input, .modal-content textarea { width: 100%; background: rgba(30,30,60,0.6); border: 1px solid rgba(124,58,237,0.3); border-radius: 10px; padding: 12px; color: white; margin-bottom: 12px; }
     .modal-content button { width: 100%; background: linear-gradient(135deg,#7c3aed,#4f46e5); color: white; border: none; padding: 12px; border-radius: 10px; margin-top: 8px; cursor: pointer; }
     .close { float: right; cursor: pointer; font-size: 1.3rem; }
     .msg { margin-top: 10px; font-size: 0.9rem; }
     .success { color: #4ade80; }
     .error { color: #f87171; }
+    .footer { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #64748b; }
   </style>
 </head>
 <body>
@@ -49,6 +50,17 @@
       </div>
     </div>
 
+    <div class="menu-item" onclick="openModal('editModal')">
+      <div class="menu-left">
+        <div class="icon">👤</div>
+        <div>
+          <div>Edit Profile</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Update your profile picture and bio</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
     <div class="menu-item" onclick="openModal('nameModal')">
       <div class="menu-left">
         <div class="icon">✏️</div>
@@ -60,18 +72,29 @@
       <span>›</span>
     </div>
 
-    <div class="menu-item" onclick="openModal('passwordModal')">
+    <div class="menu-item" onclick="openModal('accountModal')">
       <div class="menu-left">
-        <div class="icon">🔒</div>
+        <div class="icon">⚙️</div>
         <div>
-          <div>Change Password</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Update your password</div>
+          <div>Account Settings</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Manage account details and preferences</div>
         </div>
       </div>
       <span>›</span>
     </div>
 
-    <div class="menu-item" onclick="alert('Notifications coming soon')">
+    <div class="menu-item" onclick="openModal('securityModal')">
+      <div class="menu-left">
+        <div class="icon">🔒</div>
+        <div>
+          <div>Security</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Password and security settings</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
+    <div class="menu-item" onclick="openModal('notifyModal')">
       <div class="menu-left">
         <div class="icon">🔔</div>
         <div>
@@ -92,9 +115,22 @@
       </div>
       <span>›</span>
     </div>
+
+    <div class="footer">🔒 Your security is our priority. ZBYTE</div>
   </div>
 
-  <!-- Name Modal -->
+  <!-- Edit Profile Modal -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('editModal')">×</span>
+      <h3>Edit Profile</h3>
+      <textarea id="bio" placeholder="Write a short bio..." rows="3"></textarea>
+      <button onclick="updateBio()">Save Bio</button>
+      <div id="bioMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- Change Name Modal -->
   <div class="modal" id="nameModal">
     <div class="modal-content">
       <span class="close" onclick="closeModal('nameModal')">×</span>
@@ -105,15 +141,43 @@
     </div>
   </div>
 
-  <!-- Password Modal -->
-  <div class="modal" id="passwordModal">
+  <!-- Account Settings Modal -->
+  <div class="modal" id="accountModal">
     <div class="modal-content">
-      <span class="close" onclick="closeModal('passwordModal')">×</span>
-      <h3>Change Password</h3>
+      <span class="close" onclick="closeModal('accountModal')">×</span>
+      <h3>Account Settings</h3>
+      <input type="email" id="accountEmail" placeholder="Email" readonly />
+      <input type="text" id="accountPhone" placeholder="Phone number" />
+      <button onclick="updateAccount()">Update Account</button>
+      <div id="accountMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- Security Modal -->
+  <div class="modal" id="securityModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('securityModal')">×</span>
+      <h3>Security</h3>
       <input type="password" id="currentPassword" placeholder="Current password" />
       <input type="password" id="newPassword" placeholder="New password" />
       <button onclick="updatePassword()">Update Password</button>
       <div id="passwordMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- Notifications Modal -->
+  <div class="modal" id="notifyModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('notifyModal')">×</span>
+      <h3>Notifications</h3>
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <input type="checkbox" id="notifyEmail" checked /> Email notifications
+      </label>
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+        <input type="checkbox" id="notifyPush" checked /> Push notifications
+      </label>
+      <button onclick="updateNotifications()">Save</button>
+      <div id="notifyMsg" class="msg"></div>
     </div>
   </div>
 
@@ -132,6 +196,8 @@
         const name = user.name || 'User';
         document.getElementById('userName').textContent = name;
         document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
+        document.getElementById('accountEmail').value = user.email || '';
+        document.getElementById('accountPhone').value = user.phone || '';
       } catch (e) {
         document.getElementById('userName').textContent = 'MR BIG FSH';
         document.getElementById('avatar').textContent = 'M';
@@ -142,7 +208,6 @@
       const newName = document.getElementById('newName').value.trim();
       const msg = document.getElementById('nameMsg');
       if (!newName) { msg.textContent = 'Please enter a name'; msg.className = 'msg error'; return; }
-
       try {
         const res = await fetch('/api/user/update', {
           method: 'POST',
@@ -165,7 +230,6 @@
       const newPass = document.getElementById('newPassword').value;
       const msg = document.getElementById('passwordMsg');
       if (!current || !newPass) { msg.textContent = 'Fill both fields'; msg.className = 'msg error'; return; }
-
       try {
         const res = await fetch('/api/user/update', {
           method: 'POST',
@@ -176,7 +240,65 @@
         if (!res.ok) throw new Error(data.error || 'Failed');
         msg.textContent = 'Password updated!';
         msg.className = 'msg success';
-        setTimeout(() => closeModal('passwordModal'), 1000);
+        setTimeout(() => closeModal('securityModal'), 1000);
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'msg error';
+      }
+    }
+
+    async function updateBio() {
+      const bio = document.getElementById('bio').value.trim();
+      const msg = document.getElementById('bioMsg');
+      try {
+        const res = await fetch('/api/user/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ bio })
+        });
+        if (!res.ok) throw new Error('Failed');
+        msg.textContent = 'Bio updated!';
+        msg.className = 'msg success';
+        setTimeout(() => closeModal('editModal'), 1000);
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'msg error';
+      }
+    }
+
+    async function updateAccount() {
+      const phone = document.getElementById('accountPhone').value.trim();
+      const msg = document.getElementById('accountMsg');
+      try {
+        const res = await fetch('/api/user/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ phone })
+        });
+        if (!res.ok) throw new Error('Failed');
+        msg.textContent = 'Account updated!';
+        msg.className = 'msg success';
+        setTimeout(() => closeModal('accountModal'), 1000);
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'msg error';
+      }
+    }
+
+    async function updateNotifications() {
+      const email = document.getElementById('notifyEmail').checked;
+      const push = document.getElementById('notifyPush').checked;
+      const msg = document.getElementById('notifyMsg');
+      try {
+        const res = await fetch('/api/user/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ notifications: { email, push } })
+        });
+        if (!res.ok) throw new Error('Failed');
+        msg.textContent = 'Notifications updated!';
+        msg.className = 'msg success';
+        setTimeout(() => closeModal('notifyModal'), 1000);
       } catch (err) {
         msg.textContent = err.message;
         msg.className = 'msg error';
