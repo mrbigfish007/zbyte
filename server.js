@@ -34,8 +34,7 @@ function parseBody(req) {
 }
 
 function getAuthUser(req) {
-  const auth = req.headers.authorization || '';
-  const token = auth.replace('Bearer ', '').trim();
+  const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
   if (!token) return null;
   try {
     const data = db.readDb();
@@ -250,6 +249,35 @@ const server = http.createServer(async (req, res) => {
       ensureDefaultTasks();
       const data = db.readDb();
       return send(res, 200, data.tasks || []);
+    }
+
+    // WITHDRAWAL
+    if (pathname === '/api/withdraw' && req.method === 'POST') {
+      const user = getAuthUser(req);
+      if (!user) return send(res, 401, { error: 'Unauthorized' });
+      const body = await parseBody(req);
+      const { walletType, amount, bankName, accountNumber, accountName } = body;
+
+      if (!amount || !bankName || !accountNumber || !accountName) {
+        return send(res, 400, { error: 'Missing withdrawal details' });
+      }
+
+      const data = db.readDb();
+      if (!data.withdrawals) data.withdrawals = [];
+      data.withdrawals.push({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        walletType,
+        amount: Number(amount),
+        bankName,
+        accountNumber,
+        accountName,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      db.writeDb(data);
+
+      return send(res, 200, { success: true, message: 'Withdrawal request submitted' });
     }
 
     send(res, 404, { error: 'Not found' });
