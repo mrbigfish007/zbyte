@@ -14,7 +14,8 @@
     .title { font-size: 0.85rem; color: #a78bfa; letter-spacing: 1px; margin-bottom: 4px; }
     .subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
     .user-card { background: rgba(15,15,35,0.9); border: 1px solid rgba(124,58,237,0.3); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-    .avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg,#1e1b4b,#312e81); border: 2px solid #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+    .avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg,#1e1b4b,#312e81); border: 2px solid #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; overflow: hidden; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
     .menu-item { background: rgba(15,15,35,0.9); border: 1px solid rgba(124,58,237,0.2); border-radius: 14px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer; }
     .menu-left { display: flex; align-items: center; gap: 12px; }
     .icon { width: 38px; height: 38px; background: rgba(124,58,237,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
@@ -50,12 +51,23 @@
       </div>
     </div>
 
+    <div class="menu-item" onclick="openModal('pictureModal')">
+      <div class="menu-left">
+        <div class="icon">🖼️</div>
+        <div>
+          <div>Change Profile Picture</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Upload a new profile photo</div>
+        </div>
+      </div>
+      <span>›</span>
+    </div>
+
     <div class="menu-item" onclick="openModal('editModal')">
       <div class="menu-left">
         <div class="icon">👤</div>
         <div>
           <div>Edit Profile</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Update your profile picture and bio</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Update your bio</div>
         </div>
       </div>
       <span>›</span>
@@ -77,7 +89,7 @@
         <div class="icon">⚙️</div>
         <div>
           <div>Account Settings</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Manage account details and preferences</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Manage account details</div>
         </div>
       </div>
       <span>›</span>
@@ -88,7 +100,7 @@
         <div class="icon">🔒</div>
         <div>
           <div>Security</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Password and security settings</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Change password</div>
         </div>
       </div>
       <span>›</span>
@@ -99,7 +111,7 @@
         <div class="icon">🔔</div>
         <div>
           <div>Notifications</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Choose what notifications you receive</div>
+          <div style="font-size:0.75rem; color:#94a3b8;">Manage notifications</div>
         </div>
       </div>
       <span>›</span>
@@ -117,6 +129,17 @@
     </div>
 
     <div class="footer">🔒 Your security is our priority. ZBYTE</div>
+  </div>
+
+  <!-- Profile Picture Modal -->
+  <div class="modal" id="pictureModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('pictureModal')">×</span>
+      <h3>Change Profile Picture</h3>
+      <input type="file" id="pictureInput" accept="image/*" />
+      <button onclick="uploadPicture()">Upload Picture</button>
+      <div id="pictureMsg" class="msg"></div>
+    </div>
   </div>
 
   <!-- Edit Profile Modal -->
@@ -195,7 +218,12 @@
         if (!res.ok) throw new Error();
         const name = user.name || 'User';
         document.getElementById('userName').textContent = name;
-        document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
+        const avatar = document.getElementById('avatar');
+        if (user.profilePicture) {
+          avatar.innerHTML = `<img src="${user.profilePicture}" alt="Profile" />`;
+        } else {
+          avatar.textContent = name.charAt(0).toUpperCase();
+        }
         document.getElementById('accountEmail').value = user.email || '';
         document.getElementById('accountPhone').value = user.phone || '';
         document.getElementById('bio').value = user.bio || '';
@@ -203,6 +231,37 @@
         document.getElementById('userName').textContent = 'MR BIG FSH';
         document.getElementById('avatar').textContent = 'M';
       }
+    }
+
+    async function uploadPicture() {
+      const fileInput = document.getElementById('pictureInput');
+      const msg = document.getElementById('pictureMsg');
+      if (!fileInput.files || !fileInput.files[0]) {
+        msg.textContent = 'Please select a picture';
+        msg.className = 'msg error';
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const base64 = e.target.result;
+        try {
+          const res = await fetch('/api/user/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ profilePicture: base64 })
+          });
+          if (!res.ok) throw new Error('Failed');
+          msg.textContent = 'Profile picture updated!';
+          msg.className = 'msg success';
+          setTimeout(() => { closeModal('pictureModal'); loadUser(); }, 1000);
+        } catch (err) {
+          msg.textContent = err.message;
+          msg.className = 'msg error';
+        }
+      };
+      reader.readAsDataURL(file);
     }
 
     async function updateName() {
