@@ -63,10 +63,18 @@
       justify-content:space-between;
       align-items:center;
     }
-    .task-info { flex:1; }
-    .task-title { font-weight:600; margin-bottom:2px; }
-    .task-desc { font-size:0.75rem; color:#94a3b8; }
-    .task-reward { color:#4ade80; font-size:0.85rem; margin-top:4px; }
+    .balance-big { font-size:2.4rem; font-weight:800; margin:8px 0; }
+    .withdraw-btn {
+      background: linear-gradient(135deg,#7c3aed,#4f46e5);
+      border:none; color:white; padding:14px 28px; border-radius:30px;
+      font-size:1rem; font-weight:600; margin:16px 0; cursor:pointer;
+      box-shadow: 0 0 20px rgba(124,58,237,0.4);
+    }
+    .tx-item {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    .tx-item:last-child { border-bottom:none; }
   </style>
 </head>
 <body>
@@ -79,6 +87,7 @@
   </header>
 
   <div class="container">
+    <!-- HOME SECTION -->
     <div id="home" class="section active">
       <div class="welcome">
         <h1>Hello, <span id="welcomeName">User</span> ✨</h1>
@@ -103,24 +112,6 @@
           <div class="label">Referral Wallet</div>
           <div class="value" id="referralWallet">₦0</div>
         </div>
-        <div class="stat-card">
-          <div class="label">Tasks Done</div>
-          <div class="value">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">Referral Code</div>
-          <div class="value" id="refCode" style="font-size:1rem;">ADMIN01</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin-bottom:12px;">Quick Actions</h3>
-        <div class="quick">
-          <div class="quick-btn" onclick="showSection('tasks')">⚡ New Task</div>
-          <div class="quick-btn" onclick="copyReferral()">🎁 Invite Friends</div>
-          <div class="quick-btn" onclick="alert('Earnings Hub')">📈 Earnings</div>
-          <div class="quick-btn" onclick="alert('Claim Reward')">💰 Claim</div>
-        </div>
       </div>
 
       <div class="card">
@@ -132,24 +123,75 @@
       </div>
     </div>
 
+    <!-- TASKS SECTION -->
     <div id="tasks" class="section">
       <div style="margin-bottom:16px;">
         <h1 style="font-size:1.8rem;">Complete Tasks</h1>
         <p style="color:#94a3b8; font-size:0.9rem;">Complete tasks. Earn rewards. Level up.</p>
       </div>
+      <div id="tasksList">Loading...</div>
+    </div>
 
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <div style="font-size:0.75rem; color:#94a3b8;">TASK PROGRESS</div>
-            <div style="font-size:1.3rem; font-weight:700;">0 / 5 <span style="font-size:0.8rem; font-weight:normal; color:#94a3b8;">Tasks Completed</span></div>
+    <!-- WALLET SECTION -->
+    <div id="wallet" class="section">
+      <div style="text-align:center; margin-bottom:20px;">
+        <div style="font-size:0.85rem; color:#94a3b8;">Total Balance</div>
+        <div class="balance-big" id="totalBalance">₦0.00</div>
+        <div style="font-size:0.75rem; color:#a78bfa;">🔒 Secure • Private • Fast</div>
+        <button class="withdraw-btn" onclick="showWithdraw()">💳 Withdraw</button>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3>Recent Transactions</h3>
+          <span style="color:#a78bfa; font-size:0.8rem;">View All ›</span>
+        </div>
+        <div id="transactions">
+          <div class="tx-item">
+            <div>
+              <div>Withdrawal</div>
+              <div style="font-size:0.7rem; color:#94a3b8;">May 24, 2025 • 10:45 AM</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="color:#f87171;">- ₦2,000.00</div>
+              <div style="font-size:0.7rem; color:#4ade80;">Successful</div>
+            </div>
           </div>
-          <div style="width:50px; height:50px; border:2px solid #7c3aed; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem;">LVL 1</div>
+          <div class="tx-item">
+            <div>
+              <div>Received</div>
+              <div style="font-size:0.7rem; color:#94a3b8;">May 23, 2025 • 08:30 PM</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="color:#4ade80;">+ ₦3,500.00</div>
+              <div style="font-size:0.7rem; color:#4ade80;">Successful</div>
+            </div>
+          </div>
+          <div class="tx-item">
+            <div>
+              <div>Task Reward</div>
+              <div style="font-size:0.7rem; color:#94a3b8;">May 22, 2025 • 03:15 PM</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="color:#4ade80;">+ ₦500.00</div>
+              <div style="font-size:0.7rem; color:#4ade80;">Successful</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style="font-size:0.85rem; color:#facc15; margin-bottom:12px;">⚡ AVAILABLE TASKS</div>
-      <div id="tasksList">Loading...</div>
+      <div class="card" id="withdrawForm" style="display:none;">
+        <h3 style="margin-bottom:12px;">Request Withdrawal</h3>
+        <select id="walletType" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;">
+          <option value="task">Task Wallet</option>
+          <option value="referral">Referral Wallet</option>
+        </select>
+        <input type="number" id="amount" placeholder="Amount" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;" />
+        <input type="text" id="bankName" placeholder="Bank Name" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;" />
+        <input type="text" id="accountNumber" placeholder="Account Number" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;" />
+        <input type="text" id="accountName" placeholder="Account Name" style="width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px;" />
+        <button onclick="requestWithdrawal()" style="width:100%;">Submit Withdrawal</button>
+      </div>
     </div>
   </div>
 
@@ -162,7 +204,7 @@
       <div class="nav-icon">📋</div>
       Tasks
     </a>
-    <a href="#" onclick="showSection('home')">
+    <a href="#" onclick="showSection('wallet')">
       <div class="nav-icon">💰</div>
       Wallet
     </a>
@@ -181,6 +223,10 @@
       document.getElementById(section).classList.add('active');
     }
 
+    function showWithdraw() {
+      document.getElementById('withdrawForm').style.display = 'block';
+    }
+
     function copyReferral() {
       const input = document.getElementById('referralLink');
       input.select();
@@ -195,13 +241,14 @@
         const name = user.name || 'User';
         document.getElementById('welcomeName').textContent = name.split(' ')[0];
         document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
-        document.getElementById('taskWallet').textContent = '₦' + (user.taskWallet || 0).toLocaleString();
-        document.getElementById('referralWallet').textContent = '₦' + (user.referralWallet || 0).toLocaleString();
-        document.getElementById('refCode').textContent = user.referralCode || 'ADMIN01';
+        const task = user.taskWallet || 0;
+        const referral = user.referralWallet || 0;
+        document.getElementById('taskWallet').textContent = '₦' + task.toLocaleString();
+        document.getElementById('referralWallet').textContent = '₦' + referral.toLocaleString();
+        document.getElementById('totalBalance').textContent = '₦' + (task + referral).toLocaleString() + '.00';
         document.getElementById('referralLink').value = 'https://zbyte-production.up.railway.app/register.html?ref=' + (user.referralCode || 'ADMIN01');
       } catch (e) {
         document.getElementById('welcomeName').textContent = 'User';
-        document.getElementById('referralLink').value = 'https://zbyte-production.up.railway.app/register.html';
       }
     }
 
@@ -216,17 +263,22 @@
         }
         container.innerHTML = tasks.map(task => `
           <div class="task-item">
-            <div class="task-info">
-              <div class="task-title">${task.title || 'Task'}</div>
-              <div class="task-desc">${task.description || ''}</div>
-              <div class="task-reward">+₦${task.reward || 500}</div>
+            <div>
+              <div style="font-weight:600;">${task.title || 'Task'}</div>
+              <div style="font-size:0.75rem; color:#94a3b8;">${task.description || ''}</div>
+              <div style="color:#4ade80; font-size:0.85rem; margin-top:4px;">+₦${task.reward || 500}</div>
             </div>
-            <button onclick="alert('Task started! You will earn ₦${task.reward || 500}')">GO →</button>
+            <button onclick="alert('Task started!')">GO →</button>
           </div>
         `).join('');
       } catch (e) {
         document.getElementById('tasksList').innerHTML = '<p style="color:#f87171;">Could not load tasks.</p>';
       }
+    }
+
+    async function requestWithdrawal() {
+      alert('Withdrawal request submitted! (Demo mode)');
+      document.getElementById('withdrawForm').style.display = 'none';
     }
 
     function logout() {
