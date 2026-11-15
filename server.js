@@ -24,6 +24,22 @@ function send(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+function ensureDefaultTasks() {
+  try {
+    const data = db.readDb();
+    if (!data.tasks || data.tasks.length === 0) {
+      data.tasks = [
+        { id: '1', title: 'Complete a Survey', description: 'Answer a short survey', reward: 500 },
+        { id: '2', title: 'Share a Post', description: 'Share our post on social media', reward: 500 },
+        { id: '3', title: 'Fill a Form', description: 'Complete a simple form', reward: 500 }
+      ];
+      db.writeDb(data);
+    }
+  } catch (e) {
+    console.error('Error ensuring tasks:', e);
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const pathname = new URL(req.url, `http://${req.headers.host}`).pathname;
@@ -49,7 +65,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 404, { error: 'Not found' });
     }
 
-    // Simple login
+    // Login
     if (pathname === '/api/auth/login' && req.method === 'POST') {
       const body = await parseBody(req);
       const id = (body.identifier || body.email || '').toLowerCase();
@@ -59,11 +75,10 @@ const server = http.createServer(async (req, res) => {
         const token = crypto.randomBytes(16).toString('hex');
         return send(res, 200, { token });
       }
-
       return send(res, 401, { error: 'Invalid credentials' });
     }
 
-    // Simple user info
+    // User info
     if (pathname === '/api/user/me' && req.method === 'GET') {
       return send(res, 200, {
         name: 'MR BIG FSH',
@@ -75,8 +90,9 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // Simple tasks
+    // Tasks
     if (pathname === '/api/tasks' && req.method === 'GET') {
+      ensureDefaultTasks();
       const data = db.readDb();
       return send(res, 200, data.tasks || []);
     }
@@ -90,4 +106,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log('Server running on port', PORT);
+  ensureDefaultTasks();
 });
