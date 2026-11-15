@@ -28,9 +28,14 @@
     .stat-card .label { font-size:0.75rem; color:#94a3b8; }
     .stat-card .value { font-size:1.3rem; font-weight:700; margin-top:4px; }
     .card { background:rgba(15,15,35,0.8); border:1px solid rgba(124,58,237,0.25); border-radius:16px; padding:16px; margin-bottom:16px; }
+    .task { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .task:last-child { border-bottom:none; }
+    button { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:white; border:none; padding:8px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
     .logout { background:#ef4444; padding:6px 12px; font-size:0.8rem; border:none; color:white; border-radius:8px; }
     .nav { position:fixed; bottom:0; left:0; right:0; background:rgba(10,10,25,0.95); display:flex; justify-content:space-around; padding:10px 0; border-top:1px solid rgba(124,58,237,0.2); }
     .nav a { color:#94a3b8; text-decoration:none; font-size:0.7rem; text-align:center; }
+    .section { display:none; }
+    .section.active { display:block; }
   </style>
 </head>
 <body>
@@ -43,32 +48,41 @@
   </header>
 
   <div class="container">
-    <div class="welcome">
-      <h1>Hello, <span id="welcomeName">User</span></h1>
-      <p>Welcome back to ZBYTE.</p>
+    <div id="home" class="section active">
+      <div class="welcome">
+        <h1>Hello, <span id="welcomeName">User</span></h1>
+        <p>Welcome back to ZBYTE.</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <div class="label">Task Wallet</div>
+          <div class="value" id="taskWallet">₦0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Referral Wallet</div>
+          <div class="value" id="referralWallet">₦0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Referral Code</h3>
+        <p id="refCode" style="margin-top:8px; font-size:1.1rem;">-</p>
+      </div>
     </div>
 
-    <div class="stats">
-      <div class="stat-card">
-        <div class="label">Task Wallet</div>
-        <div class="value" id="taskWallet">₦0</div>
+    <div id="tasks" class="section">
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Available Tasks</h3>
+        <div id="tasksList">Loading...</div>
       </div>
-      <div class="stat-card">
-        <div class="label">Referral Wallet</div>
-        <div class="value" id="referralWallet">₦0</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Referral Code</h3>
-      <p id="refCode" style="margin-top:8px; font-size:1.1rem;">-</p>
     </div>
   </div>
 
   <nav class="nav">
-    <a href="/dashboard.html"><div>🏠</div>Home</a>
-    <a href="/dashboard.html"><div>📋</div>Tasks</a>
-    <a href="/dashboard.html"><div>💰</div>Wallet</a>
+    <a href="#" onclick="showSection('home')" id="nav-home"><div>🏠</div>Home</a>
+    <a href="#" onclick="showSection('tasks')" id="nav-tasks"><div>📋</div>Tasks</a>
+    <a href="#" onclick="showSection('home')"><div>💰</div>Wallet</a>
     <a href="/profile.html"><div>👤</div>Profile</a>
   </nav>
 
@@ -76,14 +90,19 @@
     const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
     if (!token) window.location.href = '/login.html';
 
+    function showSection(section) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav a').forEach(a => a.style.color = '#94a3b8');
+      document.getElementById(section).classList.add('active');
+      const nav = document.getElementById('nav-' + section);
+      if (nav) nav.style.color = '#a78bfa';
+    }
+
     async function loadUser() {
       try {
-        const res = await fetch('/api/user/me', { 
-          headers: { 'Authorization': 'Bearer ' + token } 
-        });
+        const res = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
         const user = await res.json();
         if (!res.ok) throw new Error();
-        
         const name = user.name || 'User';
         document.getElementById('welcomeName').textContent = name.split(' ')[0];
         document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
@@ -95,12 +114,42 @@
       }
     }
 
+    async function loadTasks() {
+      try {
+        const res = await fetch('/api/tasks', { headers: { 'Authorization': 'Bearer ' + token } });
+        const tasks = await res.json();
+        const container = document.getElementById('tasksList');
+        if (!tasks || tasks.length === 0) {
+          container.innerHTML = '<p>No tasks available right now.</p>';
+          return;
+        }
+        container.innerHTML = tasks.map(task => `
+          <div class="task">
+            <div>
+              <strong>${task.title || 'Task'}</strong><br>
+              <small style="color:#94a3b8;">${task.description || ''}</small><br>
+              <span style="color:#4ade80;">₦${task.reward || 500}</span>
+            </div>
+            <button onclick="completeTask('${task.id}')">Start</button>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('tasksList').innerHTML = '<p>Could not load tasks.</p>';
+      }
+    }
+
+    async function completeTask(taskId) {
+      alert('Task completed! (Demo mode)');
+      loadUser();
+    }
+
     function logout() {
       localStorage.clear();
       window.location.href = '/login.html';
     }
 
     loadUser();
+    loadTasks();
   </script>
 </body>
 </html>
