@@ -2,9 +2,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const https = require('https');
 const db = require('./lib/db');
 
 const PORT = process.env.PORT || 3000;
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || '';
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
@@ -15,14 +17,11 @@ function verifyPassword(password, hash, salt) {
   if (!hash || !salt) return false;
   try {
     return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex') === hash;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-function generateToken() {
-  return crypto.randomBytes(32).toString('hex');
-}
+function generateToken() { return crypto.randomBytes(32).toString('hex'); }
+function generateReferralCode() { return 'ZB' + crypto.randomBytes(4).toString('hex').toUpperCase(); }
 
 function parseBody(req) {
   return new Promise((resolve) => {
@@ -73,15 +72,13 @@ const server = http.createServer(async (req, res) => {
     return send(res, 404, { error: 'Not found' });
   }
 
+  // ==================== LOGIN ====================
   if (pathname === '/api/auth/login' && req.method === 'POST') {
     const { identifier, password } = await parseBody(req);
     const data = db.readDb();
 
     // Backup admin login
-    if (
-      (identifier === 'admin@zbyte.com.ng' || identifier === 'admin') &&
-      password === 'admin'
-    ) {
+    if ((identifier === 'admin@zbyte.com.ng' || identifier === 'admin') && password === 'admin') {
       let user = data.users.find(u => u.email === 'admin@zbyte.com.ng' || u.isAdmin);
       if (!user) {
         const { hash, salt } = hashPassword('admin');
@@ -96,7 +93,8 @@ const server = http.createServer(async (req, res) => {
           taskWallet: 0,
           referralWallet: 0,
           tier: 'gold',
-          referralCode: 'ADMIN01'
+          referralCode: 'ADMIN01',
+          notifications: true
         };
         data.users.push(user);
       }
@@ -105,21 +103,94 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { token: user.token });
     }
 
-    // Normal login
-    const user = data.users.find(u =>
-      u.email === (identifier || '').toLowerCase() ||
-      u.phone === identifier
-    );
-
+    const user = data.users.find(u => u.email === (identifier || '').toLowerCase() || u.phone === identifier);
     if (!user || !verifyPassword(password, user.passwordHash, user.passwordSalt)) {
       return send(res, 401, { error: 'Invalid credentials' });
     }
-
     user.token = generateToken();
     db.writeDb(data);
     return send(res, 200, { token: user.token });
   }
 
+  // ==================== REGISTER ====================
+  if (pathname === '/api/auth/register' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const { name, email, phone, password, tier, referralCode } = body;
+    if (!name || !email || !password || !tier) return send(res, 400, { error: 'Missing fields' });
+
+    const data = db.readDb();
+    if (data.users.find(u => u.email === email.toLowerCase())) {
+      return send(res, 400, { error: 'Email already registered' });
+    }
+
+    const { hash, salt } = hashPassword(password);
+    const user = {
+      id: crypto.randomUUID(),
+      name,
+      email: email.toLowerCase(),
+      phone: phone || '',
+      passwordHash: hash,
+      passwordSalt: salt,
+      tier: tier.toLowerCase(),
+      referralCode: generateReferralCode(),
+      referredBy: referralCode || null,
+      taskWallet: 0,
+      referralWallet: 0,
+      tasksCompleted: 0,
+      isAdmin: false,
+      active: false,
+      notifications: true,
+      token: generateToken(),
+      createdAt: new Date().toISOString()
+    };
+    data.users.push(user);
+    db.writeDb(data);
+
+    const amount = tier === 'gold' ? 30000 : tier === 'silver' ? 20000 : 10000;
+    const reference = 'ZB_' + Date.now();
+
+    const payload = JSON.stringify({
+      email: user.email,
+      amount: amount * 100,
+      reference,
+      callback_url: `https://${req.headers.host}/pay.html`,
+      metadata: { userId: user.id }
+    });
+
+    const options = {
+      hostname: 'api.paystack.co',
+      path: '/transaction/initialize',
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+
+    const paystackReq = https.request(options, (paystackRes) => {
+      let raw = '';
+      paystackRes.on('data', chunk => raw += chunk);
+      paystackRes.on('end', () => {
+        try {
+          const result = JSON.parse(raw);
+          if (result.status && result.data.authorization_url) {
+            send(res, 200, { paymentUrl: result.data.authorization_url });
+          } else {
+            send(res, 400, { error: result.message || 'Payment initialization failed' });
+          }
+        } catch {
+          send(res, 500, { error: 'Payment error' });
+        }
+      });
+    });
+    paystackReq.on('error', () => send(res, 500, { error: 'Payment connection error' }));
+    paystackReq.write(payload);
+    paystackReq.end();
+    return;
+  }
+
+  // ==================== GET USER ====================
   if (pathname === '/api/user/me' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
@@ -127,19 +198,17 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, safe);
   }
 
-  // Update profile
+  // ==================== UPDATE USER ====================
   if (pathname === '/api/user/update' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
-
     const body = await parseBody(req);
     const data = db.readDb();
     const dbUser = data.users.find(u => u.id === user.id);
     if (!dbUser) return send(res, 404, { error: 'User not found' });
 
-    if (body.name) {
-      dbUser.name = body.name.trim();
-    }
+    if (body.name) dbUser.name = body.name.trim();
+    if (typeof body.notifications === 'boolean') dbUser.notifications = body.notifications;
 
     if (body.password && body.currentPassword) {
       if (!verifyPassword(body.currentPassword, dbUser.passwordHash, dbUser.passwordSalt)) {
@@ -154,6 +223,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { success: true });
   }
 
+  // ==================== TASKS ====================
   if (pathname === '/api/tasks' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
@@ -161,7 +231,22 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, data.tasks || []);
   }
 
+  if (pathname === '/api/tasks/complete' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user) return send(res, 401, { error: 'Unauthorized' });
+    const body = await parseBody(req);
+    const data = db.readDb();
+    const dbUser = data.users.find(u => u.id === user.id);
+    const task = (data.tasks || []).find(t => t.id === body.taskId);
+    if (!task) return send(res, 404, { error: 'Task not found' });
+
+    dbUser.taskWallet = (dbUser.taskWallet || 0) + (task.reward || 500);
+    dbUser.tasksCompleted = (dbUser.tasksCompleted || 0) + 1;
+    db.writeDb(data);
+    return send(res, 200, { success: true, reward: task.reward || 500 });
+  }
+
   send(res, 404, { error: 'Not found' });
 });
 
-server.listen(PORT, () => console.log('Server running on port', PORT));
+server.listen(PORT, () => console.log('Zbyte server running on port', PORT));
