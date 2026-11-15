@@ -17,6 +17,7 @@
     .user-card { background: rgba(15,15,35,0.9); border: 1px solid rgba(124,58,237,0.3); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
     .avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg,#1e1b4b,#312e81); border: 2px solid #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; overflow: hidden; }
     .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .bio-text { font-size: 0.85rem; color: #c4b5fd; margin-top: 6px; line-height: 1.4; }
     .menu-item { background: rgba(15,15,35,0.9); border: 1px solid rgba(124,58,237,0.2); border-radius: 14px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer; }
     .menu-left { display: flex; align-items: center; gap: 12px; }
     .icon { width: 38px; height: 38px; background: rgba(124,58,237,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
@@ -49,6 +50,7 @@
       <div>
         <div id="userName" style="font-weight:600; font-size:1.15rem;">User</div>
         <div style="font-size:0.8rem; color:#a78bfa; margin-top:2px;">✓ ZBYTE User</div>
+        <div class="bio-text" id="bioDisplay">No bio yet</div>
       </div>
     </div>
 
@@ -249,12 +251,14 @@
         } else {
           avatar.textContent = name.charAt(0).toUpperCase();
         }
+        document.getElementById('bioDisplay').textContent = user.bio || 'No bio yet';
         document.getElementById('accountEmail').value = user.email || '';
         document.getElementById('accountPhone').value = user.phone || '';
         document.getElementById('bio').value = user.bio || '';
       } catch (e) {
         document.getElementById('userName').textContent = 'MR BIG FSH';
         document.getElementById('avatar').textContent = 'M';
+        document.getElementById('bioDisplay').textContent = 'No bio yet';
       }
     }
 
@@ -313,7 +317,7 @@
         if (!res.ok) throw new Error('Failed');
         msg.textContent = 'Bio updated!';
         msg.className = 'msg success';
-        setTimeout(() => closeModal('editModal'), 1000);
+        setTimeout(() => { closeModal('editModal'); loadUser(); }, 1000);
       } catch (err) {
         msg.textContent = err.message;
         msg.className = 'msg error';
