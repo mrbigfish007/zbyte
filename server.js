@@ -111,7 +111,8 @@ const server = http.createServer(async (req, res) => {
             tier: 'gold',
             referralCode: 'ADMIN01',
             phone: '',
-            bio: ''
+            bio: '',
+            profilePicture: ''
           };
           data.users.push(user);
         }
@@ -156,7 +157,8 @@ const server = http.createServer(async (req, res) => {
         isAdmin: false,
         active: false,
         token: generateToken(),
-        bio: ''
+        bio: '',
+        profilePicture: ''
       };
       data.users.push(user);
       db.writeDb(data);
@@ -230,6 +232,7 @@ const server = http.createServer(async (req, res) => {
       if (body.phone !== undefined) dbUser.phone = body.phone.trim();
       if (body.bio !== undefined) dbUser.bio = body.bio;
       if (body.notifications) dbUser.notifications = body.notifications;
+      if (body.profilePicture) dbUser.profilePicture = body.profilePicture;
 
       if (body.password && body.currentPassword) {
         if (!verifyPassword(body.currentPassword, dbUser.passwordHash, dbUser.passwordSalt)) {
@@ -256,8 +259,35 @@ const server = http.createServer(async (req, res) => {
       const user = getAuthUser(req);
       if (!user) return send(res, 401, { error: 'Unauthorized' });
       const body = await parseBody(req);
-      const result = db.createWithdrawal(user.id, body);
-      return send(res, 200, result);
+      const { walletType, amount, bankName, accountNumber, accountName } = body;
+
+      if (!amount || !bankName || !accountNumber || !accountName) {
+        return send(res, 400, { error: 'Missing withdrawal details' });
+      }
+
+      const data = db.readDb();
+      const dbUser = data.users.find(u => u.id === user.id);
+      const wallet = walletType === 'referral' ? 'referralWallet' : 'taskWallet';
+      if ((dbUser[wallet] || 0) < Number(amount)) {
+        return send(res, 400, { error: 'Insufficient balance' });
+      }
+
+      dbUser[wallet] = (dbUser[wallet] || 0) - Number(amount);
+      if (!data.withdrawals) data.withdrawals = [];
+      data.withdrawals.push({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        walletType,
+        amount: Number(amount),
+        bankName,
+        accountNumber,
+        accountName,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      db.writeDb(data);
+
+      return send(res, 200, { success: true, message: 'Withdrawal request submitted' });
     }
 
     send(res, 404, { error: 'Not found' });
