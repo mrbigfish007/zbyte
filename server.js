@@ -34,7 +34,8 @@ function parseBody(req) {
 }
 
 function getAuthUser(req) {
-  const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
+  const auth = req.headers.authorization || '';
+  const token = auth.replace('Bearer ', '').trim();
   if (!token) return null;
   try {
     const data = db.readDb();
@@ -109,7 +110,9 @@ const server = http.createServer(async (req, res) => {
             taskWallet: 0,
             referralWallet: 0,
             tier: 'gold',
-            referralCode: 'ADMIN01'
+            referralCode: 'ADMIN01',
+            phone: '',
+            bio: ''
           };
           data.users.push(user);
         }
@@ -153,7 +156,8 @@ const server = http.createServer(async (req, res) => {
         referralWallet: 0,
         isAdmin: false,
         active: false,
-        token: generateToken()
+        token: generateToken(),
+        bio: ''
       };
       data.users.push(user);
       db.writeDb(data);
@@ -224,8 +228,8 @@ const server = http.createServer(async (req, res) => {
       if (!dbUser) return send(res, 404, { error: 'User not found' });
 
       if (body.name) dbUser.name = body.name.trim();
-      if (body.phone) dbUser.phone = body.phone.trim();
-      if (body.bio) dbUser.bio = body.bio;
+      if (body.phone !== undefined) dbUser.phone = body.phone.trim();
+      if (body.bio !== undefined) dbUser.bio = body.bio;
       if (body.notifications) dbUser.notifications = body.notifications;
 
       if (body.password && body.currentPassword) {
