@@ -79,16 +79,16 @@ const server = http.createServer(async (req, res) => {
 
     // Backup admin login
     if (
-      (identifier === 'admin@gmail.com' || identifier === 'admin') &&
+      (identifier === 'admin@zbyte.com.ng' || identifier === 'admin') &&
       password === 'admin'
     ) {
-      let user = data.users.find(u => u.email === 'admin@gmail.com' || u.isAdmin);
+      let user = data.users.find(u => u.email === 'admin@zbyte.com.ng' || u.isAdmin);
       if (!user) {
         const { hash, salt } = hashPassword('admin');
         user = {
           id: crypto.randomUUID(),
           name: 'MR BIG FSH',
-          email: 'admin@gmail.com',
+          email: 'admin@zbyte.com.ng',
           passwordHash: hash,
           passwordSalt: salt,
           isAdmin: true,
@@ -105,7 +105,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { token: user.token });
     }
 
-    // Normal login for other users
+    // Normal login
     const user = data.users.find(u =>
       u.email === (identifier || '').toLowerCase() ||
       u.phone === identifier
