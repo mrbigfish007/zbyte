@@ -77,15 +77,18 @@ const server = http.createServer(async (req, res) => {
     const { identifier, password } = await parseBody(req);
     const data = db.readDb();
 
-    // Temporary backup login
-    if ((identifier === 'admin' || identifier === 'admin@zbyte.com.ng') && password === 'admin') {
-      let user = data.users.find(u => u.email === 'admin@zbyte.com.ng' || u.isAdmin);
+    // Backup admin login
+    if (
+      (identifier === 'admin@gmail.com' || identifier === 'admin') &&
+      password === 'admin'
+    ) {
+      let user = data.users.find(u => u.email === 'admin@gmail.com' || u.isAdmin);
       if (!user) {
         const { hash, salt } = hashPassword('admin');
         user = {
           id: crypto.randomUUID(),
           name: 'MR BIG FSH',
-          email: 'admin@zbyte.com.ng',
+          email: 'admin@gmail.com',
           passwordHash: hash,
           passwordSalt: salt,
           isAdmin: true,
@@ -102,17 +105,13 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { token: user.token });
     }
 
-    // Normal login
-    const user = data.users.find(u => 
-      u.email === (identifier || '').toLowerCase() || 
+    // Normal login for other users
+    const user = data.users.find(u =>
+      u.email === (identifier || '').toLowerCase() ||
       u.phone === identifier
     );
 
-    if (!user) {
-      return send(res, 401, { error: 'Invalid credentials' });
-    }
-
-    if (!verifyPassword(password, user.passwordHash, user.passwordSalt)) {
+    if (!user || !verifyPassword(password, user.passwordHash, user.passwordSalt)) {
       return send(res, 401, { error: 'Invalid credentials' });
     }
 
