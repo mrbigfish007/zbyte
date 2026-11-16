@@ -300,11 +300,11 @@
       const badge = document.getElementById('membershipBadge');
       const planLower = (plan || 'free').toLowerCase();
       badge.className = 'membership-badge ' + planLower;
-      if (planLower === 'gold') {
+      if (planLower.includes('gold')) {
         badge.innerHTML = '👑 Gold Membership';
-      } else if (planLower === 'silver') {
+      } else if (planLower.includes('silver')) {
         badge.innerHTML = '🥈 Silver Membership';
-      } else if (planLower === 'premium') {
+      } else if (planLower.includes('premium')) {
         badge.innerHTML = '⭐ Premium Membership';
       } else {
         badge.innerHTML = '⭐ Free';
@@ -323,7 +323,9 @@
         } else {
           avatar.textContent = name.charAt(0).toUpperCase();
         }
-        updateMembershipBadge(user.membership || user.plan || 'free');
+        // Check multiple possible field names for membership
+        const membership = user.membership || user.plan || user.package || user.membershipPlan || 'free';
+        updateMembershipBadge(membership);
         const task = user.taskWallet || 0;
         const referral = user.referralWallet || 0;
         document.getElementById('taskWallet').textContent = '₦' + task.toLocaleString();
