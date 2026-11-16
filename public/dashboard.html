@@ -23,10 +23,49 @@
     .container { max-width:480px; margin:0 auto; padding:10px 16px; }
     .welcome h1 { font-size:1.6rem; margin-bottom:4px; }
     .welcome p { color:#94a3b8; font-size:0.85rem; margin-bottom:16px; }
-    .campaign {
-      background: linear-gradient(135deg,#1e1b4b,#312e81);
-      border-radius:16px; padding:18px; margin-bottom:16px;
-      display:flex; justify-content:space-between; align-items:center;
+    .banner {
+      background: linear-gradient(135deg,#1e1b4b,#0f0a2e);
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius:20px;
+      padding:20px;
+      margin-bottom:16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .banner-badge {
+      display: inline-block;
+      background: linear-gradient(135deg,#f59e0b,#d97706);
+      color: #000;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+    .banner h2 { font-size: 1.5rem; margin-bottom: 4px; }
+    .banner h2 span { color: #f59e0b; }
+    .banner p { font-size: 0.8rem; color: #c4b5fd; margin-bottom: 12px; }
+    .banner-z {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 4rem;
+      font-weight: 800;
+      opacity: 0.15;
+      color: #7c3aed;
+    }
+    .banner-features {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .banner-feature {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: #a78bfa;
     }
     .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
     .stat-card { background:rgba(15,15,35,0.85); border:1px solid rgba(124,58,237,0.25); border-radius:14px; padding:14px; }
@@ -109,13 +148,16 @@
         <p>Welcome back! Here's what's happening with your ZBYTE account.</p>
       </div>
 
-      <div class="campaign">
-        <div>
-          <div style="font-size:0.65rem; background:#7c3aed; display:inline-block; padding:2px 8px; border-radius:10px; margin-bottom:6px;">NEW CAMPAIGN</div>
-          <h2>Build. Earn. Elevate.</h2>
-          <p style="font-size:0.8rem; color:#c4b5fd;">Complete tasks, earn rewards and grow your income.</p>
+      <div class="banner">
+        <div class="banner-z">Z</div>
+        <div class="banner-badge">✨ NEW CAMPAIGN</div>
+        <h2>Build. Earn.<br><span>Elevate.</span></h2>
+        <p>Launch powerful campaigns on ZBYTE. Build value, engage users, and earn rewards.</p>
+        <div class="banner-features">
+          <div class="banner-feature">🚀 Build</div>
+          <div class="banner-feature">💰 Earn</div>
+          <div class="banner-feature">📈 Elevate</div>
         </div>
-        <div style="font-size:2.8rem; opacity:0.8;">Z</div>
       </div>
 
       <div class="stats">
