@@ -11,7 +11,7 @@
       background: #050510;
       color: #ffffff;
       min-height: 100vh;
-      padding-bottom: 80px;
+      padding-bottom: 90px;
     }
     header {
       display: flex; justify-content: space-between; align-items: center;
@@ -40,18 +40,26 @@
     button { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:white; border:none; padding:10px 16px; border-radius:10px; font-weight:600; cursor:pointer; }
     .logout { background:#ef4444; padding:6px 12px; font-size:0.8rem; border:none; color:white; border-radius:8px; }
     .nav { 
-      position:fixed; bottom:0; left:0; right:0; 
-      background:rgba(10,10,25,0.95); 
+      position:fixed; bottom:16px; left:16px; right:16px;
+      background:rgba(20,20,40,0.95);
+      border:1px solid rgba(124,58,237,0.2);
+      border-radius:20px;
       display:flex; justify-content:space-around; 
-      padding:10px 0 14px; 
-      border-top:1px solid rgba(124,58,237,0.2); 
+      padding:8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
     .nav a { 
       color:#94a3b8; text-decoration:none; 
       font-size:0.65rem; text-align:center; 
-      display:flex; flex-direction:column; align-items:center; gap:4px;
+      display:flex; flex-direction:column; align-items:center; gap:2px;
+      padding:8px 12px; border-radius:14px;
+      transition: all 0.2s;
     }
-    .nav-icon { font-size:1.3rem; }
+    .nav a.active {
+      background: linear-gradient(135deg,#7c3aed,#4f46e5);
+      color: white;
+    }
+    .nav-icon { font-size:1.2rem; }
     .section { display:none; }
     .section.active { display:block; }
     .task-item {
@@ -194,19 +202,19 @@
   </div>
 
   <nav class="nav">
-    <a href="#" onclick="showSection('home')">
+    <a href="#" onclick="showSection('home')" id="nav-home" class="active">
       <div class="nav-icon">🏠</div>
       Home
     </a>
-    <a href="#" onclick="showSection('tasks')">
+    <a href="#" onclick="showSection('tasks')" id="nav-tasks">
       <div class="nav-icon">📋</div>
       Tasks
     </a>
-    <a href="#" onclick="showSection('wallet')">
+    <a href="#" onclick="showSection('wallet')" id="nav-wallet">
       <div class="nav-icon">💰</div>
       Wallet
     </a>
-    <a href="/profile.html">
+    <a href="/profile.html" id="nav-profile">
       <div class="nav-icon">👤</div>
       Profile
     </a>
@@ -218,7 +226,10 @@
 
     function showSection(section) {
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
       document.getElementById(section).classList.add('active');
+      const nav = document.getElementById('nav-' + section);
+      if (nav) nav.classList.add('active');
     }
 
     function copyReferral() {
