@@ -23,6 +23,20 @@
     .container { max-width:480px; margin:0 auto; padding:10px 16px; }
     .welcome h1 { font-size:1.6rem; margin-bottom:4px; }
     .welcome p { color:#94a3b8; font-size:0.85rem; margin-bottom:16px; }
+    .membership-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg,#7c3aed,#4f46e5);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .membership-badge.gold { background: linear-gradient(135deg,#f59e0b,#d97706); color: #000; }
+    .membership-badge.silver { background: linear-gradient(135deg,#94a3b8,#64748b); }
+    .membership-badge.premium { background: linear-gradient(135deg,#7c3aed,#4f46e5); }
     .banner {
       background: linear-gradient(135deg,#1e1b4b,#0f0a2e);
       border: 1px solid rgba(124,58,237,0.3);
@@ -144,6 +158,7 @@
   <div class="container">
     <div id="home" class="section active">
       <div class="welcome">
+        <div class="membership-badge" id="membershipBadge">⭐ Free</div>
         <h1>Hello, <span id="welcomeName">User</span> ✨</h1>
         <p>Welcome back! Here's what's happening with your ZBYTE account.</p>
       </div>
@@ -281,6 +296,21 @@
       alert('Referral link copied!');
     }
 
+    function updateMembershipBadge(plan) {
+      const badge = document.getElementById('membershipBadge');
+      const planLower = (plan || 'free').toLowerCase();
+      badge.className = 'membership-badge ' + planLower;
+      if (planLower === 'gold') {
+        badge.innerHTML = '👑 Gold Membership';
+      } else if (planLower === 'silver') {
+        badge.innerHTML = '🥈 Silver Membership';
+      } else if (planLower === 'premium') {
+        badge.innerHTML = '⭐ Premium Membership';
+      } else {
+        badge.innerHTML = '⭐ Free';
+      }
+    }
+
     async function loadUser() {
       try {
         const res = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -293,6 +323,7 @@
         } else {
           avatar.textContent = name.charAt(0).toUpperCase();
         }
+        updateMembershipBadge(user.membership || user.plan || 'free');
         const task = user.taskWallet || 0;
         const referral = user.referralWallet || 0;
         document.getElementById('taskWallet').textContent = '₦' + task.toLocaleString();
