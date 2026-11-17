@@ -38,30 +38,30 @@
       <input type="text" id="referral" placeholder="Referral Code (optional)" />
 
       <div class="plans">
-        <div class="plan" data-plan="silver" data-price="15000" onclick="selectPlan(this)">
+        <div class="plan" data-plan="premium" data-price="10000" onclick="selectPlan(this)">
+          <div>
+            <div class="plan-name">Premium Membership</div>
+            <div style="font-size:0.75rem; color:#94a3b8;">Best value</div>
+          </div>
+          <div class="plan-price">₦10,000</div>
+        </div>
+        <div class="plan" data-plan="silver" data-price="20000" onclick="selectPlan(this)">
           <div>
             <div class="plan-name">Silver Membership</div>
             <div style="font-size:0.75rem; color:#94a3b8;">Basic features</div>
           </div>
-          <div class="plan-price">₦15,000</div>
+          <div class="plan-price">₦20,000</div>
         </div>
-        <div class="plan" data-plan="gold" data-price="30000" onclick="selectPlan(this)">
+        <div class="plan selected" data-plan="gold" data-price="30000" onclick="selectPlan(this)">
           <div>
             <div class="plan-name">Gold Membership</div>
             <div style="font-size:0.75rem; color:#94a3b8;">Full access</div>
           </div>
           <div class="plan-price">₦30,000</div>
         </div>
-        <div class="plan selected" data-plan="premium" data-price="5000" onclick="selectPlan(this)">
-          <div>
-            <div class="plan-name">Premium Membership</div>
-            <div style="font-size:0.75rem; color:#94a3b8;">Best value</div>
-          </div>
-          <div class="plan-price">₦5,000</div>
-        </div>
       </div>
-      <input type="hidden" id="selectedPlan" value="premium" />
-      <input type="hidden" id="selectedPrice" value="5000" />
+      <input type="hidden" id="selectedPlan" value="gold" />
+      <input type="hidden" id="selectedPrice" value="30000" />
 
       <div class="terms">
         <input type="checkbox" id="agree" required />
