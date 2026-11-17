@@ -6,7 +6,7 @@ const https = require('https');
 const db = require('./lib/db');
 
 const PORT = process.env.PORT || 3000;
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || 'sk_live_your_key_here';
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || '';
 
 function send(res, status, data) {
   res.writeHead(status, { 
@@ -33,10 +33,12 @@ function ensureAdmin() {
   data.withdrawals = data.withdrawals || [];
 
   const adminEmail = 'admin@zbyte.com.ng';
-  if (!data.users.find(u => u.email === adminEmail)) {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync('admin', salt, 100000, 64, 'sha512').toString('hex');
-    data.users.push({
+  let admin = data.users.find(u => u.email === adminEmail);
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync('admin', salt, 100000, 64, 'sha512').toString('hex');
+
+  if (!admin) {
+    admin = {
       email: adminEmail,
       name: 'MR BIG FSH',
       salt,
@@ -49,9 +51,15 @@ function ensureAdmin() {
       bio: '',
       profilePicture: '',
       phone: ''
-    });
-    db.writeDb(data);
+    };
+    data.users.push(admin);
+  } else {
+    admin.salt = salt;
+    admin.hash = hash;
+    admin.name = admin.name || 'MR BIG FSH';
+    admin.membership = admin.membership || 'premium';
   }
+  db.writeDb(data);
 
   if (data.tasks.length === 0) {
     data.tasks = [
@@ -65,6 +73,7 @@ function ensureAdmin() {
 ensureAdmin();
 
 function paystackInitialize(email, amount, callback) {
+  if (!PAYSTACK_SECRET) return callback(new Error('No Paystack key'));
   const data = JSON.stringify({ email, amount: amount * 100, callback_url: 'https://zbyte-production.up.railway.app/login.html' });
   const options = {
     hostname: 'api.paystack.co',
@@ -135,9 +144,9 @@ const server = http.createServer((req, res) => {
         });
         db.writeDb(data);
 
-        paystackInitialize(email, parseInt(amount) || 5000, (err, result) => {
-          if (err || !result.status) {
-            return send(res, 200, { success: true, message: 'Registered. Payment link failed.' });
+        paystackInitialize(email, parseInt(amount) || 10000, (err, result) => {
+          if (err || !result || !result.status) {
+            return send(res, 200, { success: true, message: 'Registered' });
           }
           send(res, 200, { success: true, authorization_url: result.data.authorization_url });
         });
