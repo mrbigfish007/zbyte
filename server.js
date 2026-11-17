@@ -111,8 +111,7 @@ const server = http.createServer(async (req, res) => {
             tier: 'gold',
             referralCode: 'ADMIN01',
             phone: '',
-            bio: '',
-            profilePicture: ''
+            bio: ''
           };
           data.users.push(user);
         }
@@ -157,8 +156,7 @@ const server = http.createServer(async (req, res) => {
         isAdmin: false,
         active: false,
         token: generateToken(),
-        bio: '',
-        profilePicture: ''
+        bio: ''
       };
       data.users.push(user);
       db.writeDb(data);
@@ -232,7 +230,6 @@ const server = http.createServer(async (req, res) => {
       if (body.phone !== undefined) dbUser.phone = body.phone.trim();
       if (body.bio !== undefined) dbUser.bio = body.bio;
       if (body.notifications) dbUser.notifications = body.notifications;
-      if (body.profilePicture) dbUser.profilePicture = body.profilePicture;
 
       if (body.password && body.currentPassword) {
         if (!verifyPassword(body.currentPassword, dbUser.passwordHash, dbUser.passwordSalt)) {
@@ -266,13 +263,6 @@ const server = http.createServer(async (req, res) => {
       }
 
       const data = db.readDb();
-      const dbUser = data.users.find(u => u.id === user.id);
-      const wallet = walletType === 'referral' ? 'referralWallet' : 'taskWallet';
-      if ((dbUser[wallet] || 0) < Number(amount)) {
-        return send(res, 400, { error: 'Insufficient balance' });
-      }
-
-      dbUser[wallet] = (dbUser[wallet] || 0) - Number(amount);
       if (!data.withdrawals) data.withdrawals = [];
       data.withdrawals.push({
         id: crypto.randomUUID(),
@@ -299,6 +289,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log('Server running on port', PORT);
-  try { db.ensureAdmin(); } catch (e) {}
   ensureDefaultTasks();
 });
