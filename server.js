@@ -33,33 +33,28 @@ function ensureAdmin() {
   data.withdrawals = data.withdrawals || [];
 
   const adminEmail = 'admin@zbyte.com.ng';
-  let admin = data.users.find(u => u.email === adminEmail);
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.pbkdf2Sync('admin', salt, 100000, 64, 'sha512').toString('hex');
 
+  let admin = data.users.find(u => u.email === adminEmail);
   if (!admin) {
-    admin = {
-      email: adminEmail,
-      name: 'MR BIG FSH',
-      salt,
-      hash,
-      token: null,
-      taskWallet: 0,
-      referralWallet: 0,
-      referralCode: 'ADMIN01',
-      membership: 'premium',
-      bio: '',
-      profilePicture: '',
-      phone: ''
-    };
+    admin = { email: adminEmail };
     data.users.push(admin);
-  } else {
-    admin.salt = salt;
-    admin.hash = hash;
-    admin.name = admin.name || 'MR BIG FSH';
-    admin.membership = admin.membership || 'premium';
   }
+  admin.name = 'MR BIG FSH';
+  admin.salt = salt;
+  admin.hash = hash;
+  admin.token = null;
+  admin.taskWallet = admin.taskWallet || 0;
+  admin.referralWallet = admin.referralWallet || 0;
+  admin.referralCode = admin.referralCode || 'ADMIN01';
+  admin.membership = admin.membership || 'premium';
+  admin.bio = admin.bio || '';
+  admin.profilePicture = admin.profilePicture || '';
+  admin.phone = admin.phone || '';
+
   db.writeDb(data);
+  console.log('Admin password reset to: admin');
 
   if (data.tasks.length === 0) {
     data.tasks = [
