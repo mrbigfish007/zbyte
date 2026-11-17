@@ -2,9 +2,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const https = require('https');
 const db = require('./lib/db');
 
 const PORT = process.env.PORT || 3000;
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || 'sk_live_your_key_here';
 
 function send(res, status, data) {
   res.writeHead(status, { 
@@ -31,11 +33,10 @@ function ensureAdmin() {
   data.withdrawals = data.withdrawals || [];
 
   const adminEmail = 'admin@zbyte.com.ng';
-  let admin = data.users.find(u => u.email === adminEmail);
-  if (!admin) {
+  if (!data.users.find(u => u.email === adminEmail)) {
     const salt = crypto.randomBytes(16).toString('hex');
     const hash = crypto.pbkdf2Sync('admin', salt, 100000, 64, 'sha512').toString('hex');
-    admin = {
+    data.users.push({
       email: adminEmail,
       name: 'MR BIG FSH',
       salt,
@@ -48,8 +49,7 @@ function ensureAdmin() {
       bio: '',
       profilePicture: '',
       phone: ''
-    };
-    data.users.push(admin);
+    });
     db.writeDb(data);
   }
 
@@ -63,6 +63,30 @@ function ensureAdmin() {
   }
 }
 ensureAdmin();
+
+function paystackInitialize(email, amount, callback) {
+  const data = JSON.stringify({ email, amount: amount * 100, callback_url: 'https://zbyte-production.up.railway.app/login.html' });
+  const options = {
+    hostname: 'api.paystack.co',
+    path: '/transaction/initialize',
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${PAYSTACK_SECRET}`,
+      'Content-Type': 'application/json',
+      'Content-Length': data.length
+    }
+  };
+  const req = https.request(options, (res) => {
+    let body = '';
+    res.on('data', chunk => body += chunk);
+    res.on('end', () => {
+      try { callback(null, JSON.parse(body)); } catch (e) { callback(e); }
+    });
+  });
+  req.on('error', callback);
+  req.write(data);
+  req.end();
+}
 
 const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') {
@@ -78,7 +102,6 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
 
-  // Static files
   if (pathname === '/' || pathname.endsWith('.html') || pathname.endsWith('.js') || pathname.endsWith('.css')) {
     const filePath = pathname === '/' ? '/public/index.html' : '/public' + pathname;
     const fullPath = path.join(__dirname, filePath);
@@ -91,39 +114,33 @@ const server = http.createServer((req, res) => {
     }
   }
 
-  // Register
   if (pathname === '/api/auth/register' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
-        const { name, email, password, phone, referral } = JSON.parse(body);
-        if (!name || !email || !password) {
-          return send(res, 400, { error: 'Missing fields' });
-        }
+        const { name, email, password, phone, referral, membership, amount } = JSON.parse(body);
+        if (!name || !email || !password) return send(res, 400, { error: 'Missing fields' });
         const data = db.readDb();
-        if (data.users.find(u => u.email === email)) {
-          return send(res, 400, { error: 'Email already registered' });
-        }
+        if (data.users.find(u => u.email === email)) return send(res, 400, { error: 'Email already registered' });
+
         const salt = crypto.randomBytes(16).toString('hex');
         const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
         data.users.push({
-          email,
-          name,
-          phone: phone || '',
-          salt,
-          hash,
-          token: null,
-          taskWallet: 0,
-          referralWallet: 0,
+          email, name, phone: phone || '', salt, hash,
+          token: null, taskWallet: 0, referralWallet: 0,
           referralCode: 'USER' + Date.now().toString().slice(-6),
-          membership: 'free',
-          bio: '',
-          profilePicture: '',
-          referredBy: referral || ''
+          membership: membership || 'free',
+          bio: '', profilePicture: '', referredBy: referral || ''
         });
         db.writeDb(data);
-        send(res, 200, { success: true });
+
+        paystackInitialize(email, parseInt(amount) || 5000, (err, result) => {
+          if (err || !result.status) {
+            return send(res, 200, { success: true, message: 'Registered. Payment link failed.' });
+          }
+          send(res, 200, { success: true, authorization_url: result.data.authorization_url });
+        });
       } catch (e) {
         send(res, 500, { error: 'Server error' });
       }
@@ -131,7 +148,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Login
   if (pathname === '/api/auth/login' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -153,25 +169,19 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Get current user
   if (pathname === '/api/user/me' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
     send(res, 200, {
-      name: user.name,
-      email: user.email,
-      bio: user.bio || '',
+      name: user.name, email: user.email, bio: user.bio || '',
       profilePicture: user.profilePicture || '',
       membership: user.membership || 'free',
-      taskWallet: user.taskWallet || 0,
-      referralWallet: user.referralWallet || 0,
-      referralCode: user.referralCode || '',
-      phone: user.phone || ''
+      taskWallet: user.taskWallet || 0, referralWallet: user.referralWallet || 0,
+      referralCode: user.referralCode || '', phone: user.phone || ''
     });
     return;
   }
 
-  // Update user
   if (pathname === '/api/user/update' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
@@ -183,20 +193,17 @@ const server = http.createServer((req, res) => {
         const data = db.readDb();
         const u = data.users.find(x => x.email === user.email);
         if (!u) return send(res, 404, { error: 'User not found' });
-
         if (updates.name) u.name = updates.name;
         if (updates.bio !== undefined) u.bio = updates.bio;
         if (updates.profilePicture) u.profilePicture = updates.profilePicture;
         if (updates.phone) u.phone = updates.phone;
         if (updates.membership) u.membership = updates.membership;
-
         if (updates.password && updates.currentPassword) {
           const hash = crypto.pbkdf2Sync(updates.currentPassword, u.salt, 100000, 64, 'sha512').toString('hex');
           if (hash !== u.hash) return send(res, 400, { error: 'Wrong current password' });
           u.salt = crypto.randomBytes(16).toString('hex');
           u.hash = crypto.pbkdf2Sync(updates.password, u.salt, 100000, 64, 'sha512').toString('hex');
         }
-
         db.writeDb(data);
         send(res, 200, { success: true });
       } catch (e) {
@@ -206,7 +213,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Tasks
   if (pathname === '/api/tasks' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
@@ -215,7 +221,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Withdraw
   if (pathname === '/api/withdraw' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
@@ -230,19 +235,10 @@ const server = http.createServer((req, res) => {
         if (!amt || amt <= 0) return send(res, 400, { error: 'Invalid amount' });
         const balance = walletType === 'referral' ? (u.referralWallet || 0) : (u.taskWallet || 0);
         if (amt > balance) return send(res, 400, { error: 'Insufficient balance' });
-
         if (walletType === 'referral') u.referralWallet = (u.referralWallet || 0) - amt;
         else u.taskWallet = (u.taskWallet || 0) - amt;
-
         data.withdrawals = data.withdrawals || [];
-        data.withdrawals.push({
-          userId: u.email,
-          amount: amt,
-          bankName,
-          accountNumber,
-          accountName,
-          date: new Date().toISOString()
-        });
+        data.withdrawals.push({ userId: u.email, amount: amt, bankName, accountNumber, accountName, date: new Date().toISOString() });
         db.writeDb(data);
         send(res, 200, { success: true });
       } catch (e) {
