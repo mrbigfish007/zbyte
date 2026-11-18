@@ -6,245 +6,49 @@
   <title>Login – ZBYTE</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #0a0a1a;
-      color: #ffffff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background-image: radial-gradient(circle at 20% 30%, rgba(120, 50, 255, 0.15) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 70%, rgba(50, 100, 255, 0.1) 0%, transparent 50%);
-    }
-    .logo-section {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    .logo {
-      font-size: 2.8rem;
-      font-weight: 800;
-      letter-spacing: 2px;
-      background: linear-gradient(135deg, #7c3aed, #3b82f6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .tagline {
-      font-size: 0.75rem;
-      letter-spacing: 3px;
-      color: #94a3b8;
-      margin-top: 6px;
-    }
-    .card {
-      background: rgba(15, 15, 35, 0.85);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(124, 58, 237, 0.3);
-      border-radius: 20px;
-      padding: 32px 28px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-    }
-    .lock-icon {
-      width: 56px;
-      height: 56px;
-      background: rgba(124, 58, 237, 0.2);
-      border: 1px solid rgba(124, 58, 237, 0.4);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      font-size: 1.5rem;
-    }
-    h1 {
-      text-align: center;
-      font-size: 1.6rem;
-      margin-bottom: 6px;
-    }
-    .subtitle {
-      text-align: center;
-      color: #94a3b8;
-      font-size: 0.9rem;
-      margin-bottom: 28px;
-    }
-    label {
-      display: block;
-      font-size: 0.75rem;
-      letter-spacing: 1px;
-      color: #cbd5e1;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-    }
-    .input-group {
-      position: relative;
-      margin-bottom: 18px;
-    }
-    .input-group input {
-      width: 100%;
-      background: rgba(30, 30, 60, 0.6);
-      border: 1px solid rgba(124, 58, 237, 0.3);
-      border-radius: 12px;
-      padding: 14px 14px 14px 42px;
-      color: white;
-      font-size: 1rem;
-    }
-    .input-group input:focus {
-      outline: none;
-      border-color: #7c3aed;
-    }
-    .input-icon {
-      position: absolute;
-      left: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #a78bfa;
-      font-size: 1.1rem;
-    }
-    .eye-icon {
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #a78bfa;
-      cursor: pointer;
-    }
-    button {
-      width: 100%;
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-      color: white;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-    button:disabled { opacity: 0.6; }
-    .forgot {
-      text-align: right;
-      margin-top: 8px;
-    }
-    .forgot a {
-      color: #a78bfa;
-      font-size: 0.85rem;
-      text-decoration: none;
-    }
-    .divider {
-      text-align: center;
-      color: #64748b;
-      font-size: 0.8rem;
-      margin: 20px 0;
-      position: relative;
-    }
-    .divider::before, .divider::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      width: 40%;
-      height: 1px;
-      background: rgba(100, 116, 139, 0.4);
-    }
-    .divider::before { left: 0; }
-    .divider::after { right: 0; }
-    .signup {
-      text-align: center;
-      font-size: 0.9rem;
-      color: #cbd5e1;
-    }
-    .signup a {
-      color: #a78bfa;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .footer {
-      margin-top: 30px;
-      text-align: center;
-      font-size: 0.75rem;
-      color: #64748b;
-      letter-spacing: 1px;
-    }
-    .error {
-      color: #f87171;
-      text-align: center;
-      margin-top: 12px;
-      font-size: 0.85rem;
-    }
+    body { font-family: system-ui, sans-serif; background: #050510; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: rgba(15,15,35,0.9); border: 1px solid rgba(124,58,237,0.3); border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 400px; }
+    .logo { font-size: 1.8rem; font-weight: 800; text-align: center; background: linear-gradient(135deg,#7c3aed,#3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+    .subtitle { text-align: center; color: #94a3b8; margin-bottom: 24px; }
+    input { width: 100%; background: rgba(30,30,60,0.6); border: 1px solid rgba(124,58,237,0.3); border-radius: 10px; padding: 14px; color: white; margin-bottom: 12px; font-size: 1rem; }
+    button { width: 100%; background: linear-gradient(135deg,#7c3aed,#4f46e5); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer; }
+    .error { color: #f87171; text-align: center; margin-top: 12px; font-size: 0.9rem; }
+    .link { text-align: center; margin-top: 16px; font-size: 0.85rem; color: #94a3b8; }
+    .link a { color: #a78bfa; text-decoration: none; }
   </style>
 </head>
 <body>
-  <div class="logo-section">
-    <div class="logo">ZBYTE</div>
-    <div class="tagline">POWERING THE FUTURE</div>
-  </div>
-
   <div class="card">
-    <div class="lock-icon">🔒</div>
-    <h1>Welcome Back</h1>
-    <p class="subtitle">Sign in to your ZBYTE account</p>
-
-    <form id="form">
-      <label>Email</label>
-      <div class="input-group">
-        <span class="input-icon">✉️</span>
-        <input type="text" id="identifier" name="identifier" placeholder="Enter your email" required />
-      </div>
-
-      <label>Password</label>
-      <div class="input-group">
-        <span class="input-icon">🔒</span>
-        <input type="password" id="password" name="password" placeholder="Enter your password" required />
-        <span class="eye-icon" onclick="togglePassword()">👁️</span>
-      </div>
-
-      <div class="forgot"><a href="#">Forgot password?</a></div>
-
-      <button type="submit" id="btn">Login</button>
-      <div class="error" id="error"></div>
+    <div class="logo">ZBYTE</div>
+    <div class="subtitle">Sign in to your account</div>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+      <div id="error" class="error"></div>
     </form>
-
-    <div class="divider">OR</div>
-
-    <div class="signup">
-      Don’t have an account? <a href="/register.html">Sign Up</a>
-    </div>
+    <div class="link">Don't have an account? <a href="/register.html">Sign Up</a></div>
   </div>
-
-  <div class="footer">SECURE ACCESS • ENTERPRISE GRADE</div>
-
   <script>
-    function togglePassword() {
-      const input = document.getElementById('password');
-      input.type = input.type === 'password' ? 'text' : 'password';
-    }
-
-    document.getElementById('form').addEventListener('submit', async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = document.getElementById('btn');
-      const err = document.getElementById('error');
-      btn.disabled = true;
-      err.textContent = '';
-
+      const errorEl = document.getElementById('error');
+      errorEl.textContent = '';
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            identifier: document.getElementById('identifier').value.trim(),
-            password: document.getElementById('password').value
-          })
+          body: JSON.stringify({ email, password })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Login failed');
+        localStorage.setItem('token', data.token);
         localStorage.setItem('zbyte_token', data.token);
-        location.href = '/dashboard.html';
-      } catch (ex) {
-        err.textContent = ex.message;
-        btn.disabled = false;
+        window.location.href = '/dashboard.html';
+      } catch (err) {
+        errorEl.textContent = err.message;
       }
     });
   </script>
