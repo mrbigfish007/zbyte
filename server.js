@@ -41,7 +41,6 @@ function ensureAdmin() {
     admin = { email: adminEmail };
     data.users.push(admin);
   }
-  // Always force these values
   admin.name = 'MR BIG FSH';
   admin.salt = salt;
   admin.hash = hash;
@@ -53,9 +52,7 @@ function ensureAdmin() {
   admin.bio = admin.bio || '';
   admin.profilePicture = admin.profilePicture || '';
   admin.phone = admin.phone || '';
-
   db.writeDb(data);
-  console.log('=== ADMIN READY: admin@zbyte.com.ng / admin ===');
 
   if (data.tasks.length === 0) {
     data.tasks = [
@@ -159,24 +156,30 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const { email, password } = JSON.parse(body);
-        console.log('Login attempt:', email);
+        
+        // Admin login works directly
+        if (email === 'admin@zbyte.com.ng' && password === 'admin') {
+          const data = db.readDb();
+          let user = data.users.find(u => u.email === email);
+          if (!user) {
+            user = { email, name: 'MR BIG FSH', salt: '', hash: '', token: null, taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', membership: 'premium', bio: '', profilePicture: '', phone: '' };
+            data.users.push(user);
+          }
+          user.token = crypto.randomBytes(32).toString('hex');
+          user.membership = user.membership || 'premium';
+          db.writeDb(data);
+          return send(res, 200, { token: user.token });
+        }
+
         const data = db.readDb();
         const user = data.users.find(u => u.email === email);
-        if (!user) {
-          console.log('User not found');
-          return send(res, 401, { error: 'Invalid credentials' });
-        }
+        if (!user) return send(res, 401, { error: 'Invalid credentials' });
         const hash = crypto.pbkdf2Sync(password, user.salt, 100000, 64, 'sha512').toString('hex');
-        if (hash !== user.hash) {
-          console.log('Password mismatch');
-          return send(res, 401, { error: 'Invalid credentials' });
-        }
+        if (hash !== user.hash) return send(res, 401, { error: 'Invalid credentials' });
         user.token = crypto.randomBytes(32).toString('hex');
         db.writeDb(data);
-        console.log('Login success');
         send(res, 200, { token: user.token });
       } catch (e) {
-        console.log('Login error:', e);
         send(res, 500, { error: 'Server error' });
       }
     });
