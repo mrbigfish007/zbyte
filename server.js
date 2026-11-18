@@ -33,29 +33,29 @@ function ensureAdmin() {
   data.withdrawals = data.withdrawals || [];
 
   const adminEmail = 'admin@zbyte.com.ng';
-  let admin = data.users.find(u => u.email === adminEmail);
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync('admin', salt, 100000, 64, 'sha512').toString('hex');
 
+  let admin = data.users.find(u => u.email === adminEmail);
   if (!admin) {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync('admin', salt, 100000, 64, 'sha512').toString('hex');
-    admin = {
-      email: adminEmail,
-      name: 'MR BIG FSH',
-      salt,
-      hash,
-      token: null,
-      taskWallet: 0,
-      referralWallet: 0,
-      referralCode: 'ADMIN01',
-      membership: 'premium',
-      bio: '',
-      profilePicture: '',
-      phone: ''
-    };
+    admin = { email: adminEmail };
     data.users.push(admin);
-    db.writeDb(data);
-    console.log('Admin created');
   }
+  // Always force these values
+  admin.name = 'MR BIG FSH';
+  admin.salt = salt;
+  admin.hash = hash;
+  admin.token = null;
+  admin.taskWallet = admin.taskWallet || 0;
+  admin.referralWallet = admin.referralWallet || 0;
+  admin.referralCode = admin.referralCode || 'ADMIN01';
+  admin.membership = admin.membership || 'premium';
+  admin.bio = admin.bio || '';
+  admin.profilePicture = admin.profilePicture || '';
+  admin.phone = admin.phone || '';
+
+  db.writeDb(data);
+  console.log('=== ADMIN READY: admin@zbyte.com.ng / admin ===');
 
   if (data.tasks.length === 0) {
     data.tasks = [
@@ -70,11 +70,7 @@ ensureAdmin();
 
 function paystackInitialize(email, amount, callback) {
   if (!PAYSTACK_SECRET) return callback(new Error('No Paystack key'));
-  const data = JSON.stringify({ 
-    email, 
-    amount: amount * 100, 
-    callback_url: 'https://zbyte-production.up.railway.app/login.html' 
-  });
+  const data = JSON.stringify({ email, amount: amount * 100, callback_url: 'https://zbyte-production.up.railway.app/login.html' });
   const options = {
     hostname: 'api.paystack.co',
     path: '/transaction/initialize',
@@ -163,15 +159,24 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const { email, password } = JSON.parse(body);
+        console.log('Login attempt:', email);
         const data = db.readDb();
         const user = data.users.find(u => u.email === email);
-        if (!user) return send(res, 401, { error: 'Invalid credentials' });
+        if (!user) {
+          console.log('User not found');
+          return send(res, 401, { error: 'Invalid credentials' });
+        }
         const hash = crypto.pbkdf2Sync(password, user.salt, 100000, 64, 'sha512').toString('hex');
-        if (hash !== user.hash) return send(res, 401, { error: 'Invalid credentials' });
+        if (hash !== user.hash) {
+          console.log('Password mismatch');
+          return send(res, 401, { error: 'Invalid credentials' });
+        }
         user.token = crypto.randomBytes(32).toString('hex');
         db.writeDb(data);
+        console.log('Login success');
         send(res, 200, { token: user.token });
       } catch (e) {
+        console.log('Login error:', e);
         send(res, 500, { error: 'Server error' });
       }
     });
