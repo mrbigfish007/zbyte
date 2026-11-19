@@ -44,6 +44,9 @@ function ensureAdmin() {
     };
     data.users.push(admin);
     db.writeDb(data);
+  } else {
+    admin.isAdmin = true;
+    db.writeDb(data);
   }
 
   if (data.tasks.length === 0) {
@@ -132,7 +135,11 @@ const server = http.createServer((req, res) => {
           const data = db.readDb();
           let user = data.users.find(u => u.email === email);
           if (!user) {
-            user = { email, name: 'MR BIG FSH', salt: '', hash: '', token: null, taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', membership: 'premium', bio: '', profilePicture: '', phone: '', isAdmin: true };
+            user = { 
+              email, name: 'MR BIG FSH', salt: '', hash: '', token: null, 
+              taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', 
+              membership: 'premium', bio: '', profilePicture: '', phone: '', isAdmin: true 
+            };
             data.users.push(user);
           }
           user.token = crypto.randomBytes(32).toString('hex');
@@ -227,7 +234,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Upgrade membership
   if (pathname === '/api/upgrade' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
@@ -253,7 +259,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Admin: list users
   if (pathname === '/api/admin/users' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
