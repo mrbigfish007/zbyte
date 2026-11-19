@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – ZBYTE</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #050510; color: #fff; padding: 20px; }
+    h1 { margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(124,58,237,0.3); }
+    th { color: #a78bfa; }
+    .logout { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <button class="logout" onclick="logout()">Logout</button>
+  <h1>Admin Panel</h1>
+  <div id="content">Loading...</div>
+
+  <script>
+    const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
+    if (!token) window.location.href = '/login.html';
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) throw new Error('Access denied');
+        const users = await res.json();
+        if (!users.length) {
+          document.getElementById('content').innerHTML = '<p>No users yet.</p>';
+          return;
+        }
+        let html = '<table><tr><th>Name</th><th>Email</th><th>Membership</th><th>Task Wallet</th><th>Referral</th></tr>';
+        users.forEach(u => {
+          html += `<tr><td>\( {u.name || '-'}</td><td> \){u.email}</td><td>\( {u.membership || 'free'}</td><td>₦ \){u.taskWallet || 0}</td><td>₦${u.referralWallet || 0}</td></tr>`;
+        });
+        html += '</table>';
+        document.getElementById('content').innerHTML = html;
+      } catch (e) {
+        document.getElementById('content').innerHTML = '<p style="color:#f87171;">' + e.message + '</p>';
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
