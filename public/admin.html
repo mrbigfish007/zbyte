@@ -8,16 +8,27 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #050510; color: #fff; padding: 20px; }
     h1 { margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(124,58,237,0.3); }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.85rem; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid rgba(124,58,237,0.3); }
     th { color: #a78bfa; }
     .logout { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; }
+    .section { margin-top: 24px; }
+    .btn { background: #7c3aed; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
   </style>
 </head>
 <body>
   <button class="logout" onclick="logout()">Logout</button>
   <h1>Admin Panel</h1>
-  <div id="content">Loading...</div>
+
+  <div class="section">
+    <h2>Users</h2>
+    <div id="users">Loading...</div>
+  </div>
+
+  <div class="section">
+    <h2>Withdrawal Requests</h2>
+    <div id="withdrawals">Loading...</div>
+  </div>
 
   <script>
     const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
@@ -29,17 +40,70 @@
         if (!res.ok) throw new Error('Access denied');
         const users = await res.json();
         if (!users.length) {
-          document.getElementById('content').innerHTML = '<p>No users yet.</p>';
+          document.getElementById('users').innerHTML = '<p>No users yet.</p>';
           return;
         }
         let html = '<table><tr><th>Name</th><th>Email</th><th>Membership</th><th>Task Wallet</th><th>Referral</th></tr>';
-        users.forEach(u => {
-          html += `<tr><td>\( {u.name || '-'}</td><td> \){u.email}</td><td>\( {u.membership || 'free'}</td><td>₦ \){u.taskWallet || 0}</td><td>₦${u.referralWallet || 0}</td></tr>`;
+        users.forEach(function(u) {
+          html += '<tr>';
+          html += '<td>' + (u.name || '-') + '</td>';
+          html += '<td>' + u.email + '</td>';
+          html += '<td>' + (u.membership || 'free') + '</td>';
+          html += '<td>₦' + (u.taskWallet || 0) + '</td>';
+          html += '<td>₦' + (u.referralWallet || 0) + '</td>';
+          html += '</tr>';
         });
         html += '</table>';
-        document.getElementById('content').innerHTML = html;
+        document.getElementById('users').innerHTML = html;
       } catch (e) {
-        document.getElementById('content').innerHTML = '<p style="color:#f87171;">' + e.message + '</p>';
+        document.getElementById('users').innerHTML = '<p style="color:#f87171;">' + e.message + '</p>';
+      }
+    }
+
+    async function loadWithdrawals() {
+      try {
+        const res = await fetch('/api/admin/withdrawals', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) throw new Error('Could not load');
+        const withdrawals = await res.json();
+        if (!withdrawals.length) {
+          document.getElementById('withdrawals').innerHTML = '<p>No withdrawal requests.</p>';
+          return;
+        }
+        let html = '<table><tr><th>User</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th><th>Action</th></tr>';
+        withdrawals.forEach(function(w) {
+          html += '<tr>';
+          html += '<td>' + w.userId + '</td>';
+          html += '<td>₦' + w.amount + '</td>';
+          html += '<td>' + (w.bankName || '-') + '</td>';
+          html += '<td>' + (w.accountNumber || '-') + '</td>';
+          html += '<td>' + (w.status || 'pending') + '</td>';
+          html += '<td>';
+          if (w.status === 'pending') {
+            html += '<button class="btn" onclick="approveWithdrawal(\'' + w.id + '\')">Approve</button>';
+          }
+          html += '</td>';
+          html += '</tr>';
+        });
+        html += '</table>';
+        document.getElementById('withdrawals').innerHTML = html;
+      } catch (e) {
+        document.getElementById('withdrawals').innerHTML = '<p>No withdrawals yet.</p>';
+      }
+    }
+
+    async function approveWithdrawal(id) {
+      try {
+        const res = await fetch('/api/admin/approve-withdrawal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ id: id })
+        });
+        if (res.ok) {
+          alert('Approved');
+          loadWithdrawals();
+        }
+      } catch (e) {
+        alert('Error');
       }
     }
 
@@ -49,6 +113,7 @@
     }
 
     loadUsers();
+    loadWithdrawals();
   </script>
 </body>
 </html>
