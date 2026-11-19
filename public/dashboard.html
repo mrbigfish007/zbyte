@@ -6,81 +6,25 @@
   <title>Dashboard – ZBYTE</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #050510;
-      color: #ffffff;
-      min-height: 100vh;
-      padding-bottom: 90px;
-    }
-    header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 20px;
-    }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #050510; color: #ffffff; min-height: 100vh; padding-bottom: 90px; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; }
     .logo { font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg,#7c3aed,#3b82f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
     .avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#4f46e5); display:flex; align-items:center; justify-content:center; font-weight:700; overflow:hidden; }
     .avatar img { width:100%; height:100%; object-fit:cover; }
     .container { max-width:480px; margin:0 auto; padding:10px 16px; }
     .welcome h1 { font-size:1.6rem; margin-bottom:4px; }
     .welcome p { color:#94a3b8; font-size:0.85rem; margin-bottom:16px; }
-    .membership-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: linear-gradient(135deg,#7c3aed,#4f46e5);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
+    .membership-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg,#7c3aed,#4f46e5); padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-bottom: 12px; cursor: pointer; }
     .membership-badge.gold { background: linear-gradient(135deg,#f59e0b,#d97706); color: #000; }
     .membership-badge.silver { background: linear-gradient(135deg,#94a3b8,#64748b); }
-    .membership-badge.premium { background: linear-gradient(135deg,#7c3aed,#4f46e5); }
-    .banner {
-      background: linear-gradient(135deg,#1e1b4b,#0f0a2e);
-      border: 1px solid rgba(124,58,237,0.3);
-      border-radius:20px;
-      padding:20px;
-      margin-bottom:16px;
-      position: relative;
-      overflow: hidden;
-    }
-    .banner-badge {
-      display: inline-block;
-      background: linear-gradient(135deg,#f59e0b,#d97706);
-      color: #000;
-      font-size: 0.65rem;
-      font-weight: 700;
-      padding: 4px 12px;
-      border-radius: 20px;
-      margin-bottom: 10px;
-    }
+    .banner { background: linear-gradient(135deg,#1e1b4b,#0f0a2e); border: 1px solid rgba(124,58,237,0.3); border-radius:20px; padding:20px; margin-bottom:16px; position: relative; overflow: hidden; }
+    .banner-badge { display: inline-block; background: linear-gradient(135deg,#f59e0b,#d97706); color: #000; font-size: 0.65rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px; }
     .banner h2 { font-size: 1.5rem; margin-bottom: 4px; }
     .banner h2 span { color: #f59e0b; }
     .banner p { font-size: 0.8rem; color: #c4b5fd; margin-bottom: 12px; }
-    .banner-z {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 4rem;
-      font-weight: 800;
-      opacity: 0.15;
-      color: #7c3aed;
-    }
-    .banner-features {
-      display: flex;
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .banner-feature {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.7rem;
-      color: #a78bfa;
-    }
+    .banner-z { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 4rem; font-weight: 800; opacity: 0.15; color: #7c3aed; }
+    .banner-features { display: flex; gap: 12px; margin-top: 12px; }
+    .banner-feature { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: #a78bfa; }
     .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
     .stat-card { background:rgba(15,15,35,0.85); border:1px solid rgba(124,58,237,0.25); border-radius:14px; padding:14px; }
     .stat-card .label { font-size:0.7rem; color:#94a3b8; }
@@ -92,58 +36,21 @@
     .referral-box input { flex:1; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:10px; color:white; }
     button { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:white; border:none; padding:10px 16px; border-radius:10px; font-weight:600; cursor:pointer; }
     .logout { background:#ef4444; padding:6px 12px; font-size:0.8rem; border:none; color:white; border-radius:8px; }
-    .nav { 
-      position:fixed; bottom:16px; left:16px; right:16px;
-      background:rgba(20,20,40,0.95);
-      border:1px solid rgba(124,58,237,0.2);
-      border-radius:20px;
-      display:flex; justify-content:space-around; 
-      padding:8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-    .nav a { 
-      color:#94a3b8; text-decoration:none; 
-      font-size:0.65rem; text-align:center; 
-      display:flex; flex-direction:column; align-items:center; gap:2px;
-      padding:8px 12px; border-radius:14px;
-      transition: all 0.2s;
-    }
-    .nav a.active {
-      background: linear-gradient(135deg,#7c3aed,#4f46e5);
-      color: white;
-    }
+    .nav { position:fixed; bottom:16px; left:16px; right:16px; background:rgba(20,20,40,0.95); border:1px solid rgba(124,58,237,0.2); border-radius:20px; display:flex; justify-content:space-around; padding:8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .nav a { color:#94a3b8; text-decoration:none; font-size:0.65rem; text-align:center; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 12px; border-radius:14px; }
+    .nav a.active { background: linear-gradient(135deg,#7c3aed,#4f46e5); color: white; }
     .nav-icon { font-size:1.2rem; }
     .section { display:none; }
     .section.active { display:block; }
-    .task-item {
-      background:rgba(15,15,35,0.85);
-      border:1px solid rgba(124,58,237,0.25);
-      border-radius:14px;
-      padding:14px;
-      margin-bottom:10px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
+    .task-item { background:rgba(15,15,35,0.85); border:1px solid rgba(124,58,237,0.25); border-radius:14px; padding:14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
     .balance-big { font-size:2.4rem; font-weight:800; margin:8px 0; }
-    .withdraw-btn {
-      background: linear-gradient(135deg,#7c3aed,#4f46e5);
-      border:none; color:white; padding:14px 28px; border-radius:30px;
-      font-size:1rem; font-weight:600; margin:16px 0; cursor:pointer;
-      box-shadow: 0 0 20px rgba(124,58,237,0.4);
-    }
-    .chart {
-      height: 120px;
-      background: linear-gradient(to top, rgba(124,58,237,0.2), transparent);
-      border-radius: 8px;
-      margin-top: 10px;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-around;
-      padding: 10px;
-    }
+    .withdraw-btn { background: linear-gradient(135deg,#7c3aed,#4f46e5); border:none; color:white; padding:14px 28px; border-radius:30px; font-size:1rem; font-weight:600; margin:16px 0; cursor:pointer; }
+    .chart { height: 120px; background: linear-gradient(to top, rgba(124,58,237,0.2), transparent); border-radius: 8px; margin-top: 10px; display: flex; align-items: flex-end; justify-content: space-around; padding: 10px; }
     .bar { width: 12px; background: #7c3aed; border-radius: 4px 4px 0 0; }
     input, select { width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px; }
+    .upgrade-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; }
+    .upgrade-modal.show { display:flex; }
+    .upgrade-content { background:#1a1a2e; border-radius:16px; padding:24px; max-width:320px; width:90%; }
   </style>
 </head>
 <body>
@@ -158,7 +65,7 @@
   <div class="container">
     <div id="home" class="section active">
       <div class="welcome">
-        <div class="membership-badge" id="membershipBadge">⭐ Free</div>
+        <div class="membership-badge" id="membershipBadge" onclick="showUpgrade()">⭐ Free</div>
         <h1>Hello, <span id="welcomeName">User</span> ✨</h1>
         <p>Welcome back! Here's what's happening with your ZBYTE account.</p>
       </div>
@@ -176,22 +83,10 @@
       </div>
 
       <div class="stats">
-        <div class="stat-card">
-          <div class="label">Task Wallet</div>
-          <div class="value" id="taskWallet">₦0</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">Referral Wallet</div>
-          <div class="value" id="referralWallet">₦0</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">Tasks Done</div>
-          <div class="value">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">Referral Code</div>
-          <div class="value" id="refCode" style="font-size:1rem;">ADMIN01</div>
-        </div>
+        <div class="stat-card"><div class="label">Task Wallet</div><div class="value" id="taskWallet">₦0</div></div>
+        <div class="stat-card"><div class="label">Referral Wallet</div><div class="value" id="referralWallet">₦0</div></div>
+        <div class="stat-card"><div class="label">Tasks Done</div><div class="value">0</div></div>
+        <div class="stat-card"><div class="label">Referral Code</div><div class="value" id="refCode" style="font-size:1rem;">ADMIN01</div></div>
       </div>
 
       <div class="card">
@@ -200,20 +95,15 @@
           <div class="quick-btn" onclick="showSection('tasks')">⚡ New Task</div>
           <div class="quick-btn" onclick="copyReferral()">🎁 Invite Friends</div>
           <div class="quick-btn" onclick="showSection('wallet')">💰 Withdraw</div>
-          <div class="quick-btn" onclick="alert('Earnings Hub')">📈 Earnings</div>
+          <div class="quick-btn" onclick="showUpgrade()">📈 Upgrade</div>
         </div>
       </div>
 
       <div class="card">
         <h3>Earnings Overview</h3>
         <div class="chart">
-          <div class="bar" style="height:30%"></div>
-          <div class="bar" style="height:50%"></div>
-          <div class="bar" style="height:40%"></div>
-          <div class="bar" style="height:70%"></div>
-          <div class="bar" style="height:60%"></div>
-          <div class="bar" style="height:45%"></div>
-          <div class="bar" style="height:55%"></div>
+          <div class="bar" style="height:30%"></div><div class="bar" style="height:50%"></div><div class="bar" style="height:40%"></div>
+          <div class="bar" style="height:70%"></div><div class="bar" style="height:60%"></div><div class="bar" style="height:45%"></div><div class="bar" style="height:55%"></div>
         </div>
       </div>
 
@@ -241,13 +131,9 @@
         <div style="font-size:0.75rem; color:#a78bfa;">🔒 Secure • Private • Fast</div>
         <button class="withdraw-btn" onclick="document.getElementById('withdrawForm').style.display='block'">💳 Withdraw</button>
       </div>
-
       <div class="card" id="withdrawForm" style="display:none;">
         <h3 style="margin-bottom:12px;">Request Withdrawal</h3>
-        <select id="walletType">
-          <option value="task">Task Wallet</option>
-          <option value="referral">Referral Wallet</option>
-        </select>
+        <select id="walletType"><option value="task">Task Wallet</option><option value="referral">Referral Wallet</option></select>
         <input type="number" id="amount" placeholder="Amount" />
         <input type="text" id="bankName" placeholder="Bank Name" />
         <input type="text" id="accountNumber" placeholder="Account Number" />
@@ -258,23 +144,21 @@
     </div>
   </div>
 
+  <div class="upgrade-modal" id="upgradeModal">
+    <div class="upgrade-content">
+      <h3 style="margin-bottom:12px;">Upgrade Membership</h3>
+      <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:16px;">Current plan: <span id="currentPlan">Free</span></p>
+      <p style="font-size:0.85rem; margin-bottom:16px;">Upgrade to Gold for full access.</p>
+      <button onclick="alert('Upgrade coming soon')" style="width:100%; margin-bottom:8px;">Upgrade to Gold – ₦30,000</button>
+      <button onclick="document.getElementById('upgradeModal').classList.remove('show')" style="width:100%; background:#333;">Close</button>
+    </div>
+  </div>
+
   <nav class="nav">
-    <a href="#" onclick="showSection('home')" id="nav-home" class="active">
-      <div class="nav-icon">🏠</div>
-      Home
-    </a>
-    <a href="#" onclick="showSection('tasks')" id="nav-tasks">
-      <div class="nav-icon">📋</div>
-      Tasks
-    </a>
-    <a href="#" onclick="showSection('wallet')" id="nav-wallet">
-      <div class="nav-icon">💰</div>
-      Wallet
-    </a>
-    <a href="/profile.html" id="nav-profile">
-      <div class="nav-icon">👤</div>
-      Profile
-    </a>
+    <a href="#" onclick="showSection('home')" id="nav-home" class="active"><div class="nav-icon">🏠</div>Home</a>
+    <a href="#" onclick="showSection('tasks')" id="nav-tasks"><div class="nav-icon">📋</div>Tasks</a>
+    <a href="#" onclick="showSection('wallet')" id="nav-wallet"><div class="nav-icon">💰</div>Wallet</a>
+    <a href="/profile.html" id="nav-profile"><div class="nav-icon">👤</div>Profile</a>
   </nav>
 
   <script>
@@ -296,19 +180,19 @@
       alert('Referral link copied!');
     }
 
+    function showUpgrade() {
+      document.getElementById('upgradeModal').classList.add('show');
+    }
+
     function updateMembershipBadge(plan) {
       const badge = document.getElementById('membershipBadge');
       const planLower = (plan || 'free').toLowerCase();
       badge.className = 'membership-badge ' + planLower;
-      if (planLower.includes('gold')) {
-        badge.innerHTML = '👑 Gold Membership';
-      } else if (planLower.includes('silver')) {
-        badge.innerHTML = '🥈 Silver Membership';
-      } else if (planLower.includes('premium')) {
-        badge.innerHTML = '⭐ Premium Membership';
-      } else {
-        badge.innerHTML = '⭐ Free';
-      }
+      document.getElementById('currentPlan').textContent = plan || 'Free';
+      if (planLower.includes('gold')) badge.innerHTML = '👑 Gold Membership';
+      else if (planLower.includes('silver')) badge.innerHTML = '🥈 Silver Membership';
+      else if (planLower.includes('premium')) badge.innerHTML = '⭐ Premium Membership';
+      else badge.innerHTML = '⭐ Free';
     }
 
     async function loadUser() {
@@ -318,14 +202,9 @@
         const name = user.name || 'User';
         document.getElementById('welcomeName').textContent = name.split(' ')[0];
         const avatar = document.getElementById('avatar');
-        if (user.profilePicture) {
-          avatar.innerHTML = `<img src="${user.profilePicture}" alt="Profile" />`;
-        } else {
-          avatar.textContent = name.charAt(0).toUpperCase();
-        }
-        // Check multiple possible field names for membership
-        const membership = user.membership || user.plan || user.package || user.membershipPlan || 'free';
-        updateMembershipBadge(membership);
+        if (user.profilePicture) avatar.innerHTML = `<img src="${user.profilePicture}" alt="Profile" />`;
+        else avatar.textContent = name.charAt(0).toUpperCase();
+        updateMembershipBadge(user.membership || 'free');
         const task = user.taskWallet || 0;
         const referral = user.referralWallet || 0;
         document.getElementById('taskWallet').textContent = '₦' + task.toLocaleString();
@@ -333,9 +212,7 @@
         document.getElementById('totalBalance').textContent = '₦' + (task + referral).toLocaleString() + '.00';
         document.getElementById('refCode').textContent = user.referralCode || 'ADMIN01';
         document.getElementById('referralLink').value = 'https://zbyte-production.up.railway.app/register.html?ref=' + (user.referralCode || 'ADMIN01');
-      } catch (e) {
-        document.getElementById('welcomeName').textContent = 'User';
-      }
+      } catch (e) { document.getElementById('welcomeName').textContent = 'User'; }
     }
 
     async function loadTasks() {
@@ -357,15 +234,12 @@
             <button onclick="alert('Task started!')">GO →</button>
           </div>
         `).join('');
-      } catch (e) {
-        document.getElementById('tasksList').innerHTML = '<p style="color:#f87171;">Could not load tasks.</p>';
-      }
+      } catch (e) { document.getElementById('tasksList').innerHTML = '<p style="color:#f87171;">Could not load tasks.</p>'; }
     }
 
     async function requestWithdrawal() {
       const errorEl = document.getElementById('withdrawError');
       errorEl.textContent = '';
-
       const data = {
         walletType: document.getElementById('walletType').value,
         amount: document.getElementById('amount').value,
@@ -373,19 +247,14 @@
         accountNumber: document.getElementById('accountNumber').value,
         accountName: document.getElementById('accountName').value
       };
-
       if (!data.amount || !data.bankName || !data.accountNumber || !data.accountName) {
         errorEl.textContent = 'Please fill all fields';
         return;
       }
-
       try {
         const res = await fetch('/api/withdraw', {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Authorization': 'Bearer ' + token 
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify(data)
         });
         const result = await res.json();
@@ -397,9 +266,7 @@
         document.getElementById('accountName').value = '';
         document.getElementById('withdrawForm').style.display = 'none';
         loadUser();
-      } catch (err) {
-        errorEl.textContent = err.message;
-      }
+      } catch (err) { errorEl.textContent = err.message; }
     }
 
     function logout() {
