@@ -59,7 +59,7 @@ ensureAdmin();
 
 function paystackInitialize(email, amount, callback) {
   if (!PAYSTACK_SECRET) return callback(new Error('No Paystack key'));
-  const data = JSON.stringify({ email, amount: amount * 100, callback_url: 'https://zbyte-production.up.railway.app/login.html' });
+  const data = JSON.stringify({ email, amount: amount * 100, callback_url: 'https://zbyte-production.up.railway.app/dashboard.html' });
   const options = {
     hostname: 'api.paystack.co', path: '/transaction/initialize', method: 'POST',
     headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json', 'Content-Length': data.length }
@@ -222,6 +222,32 @@ const server = http.createServer((req, res) => {
         data.withdrawals.push({ userId: u.email, amount: amt, bankName, accountNumber, accountName, status: 'pending', date: new Date().toISOString() });
         db.writeDb(data);
         send(res, 200, { success: true });
+      } catch (e) { send(res, 500, { error: 'Server error' }); }
+    });
+    return;
+  }
+
+  // Upgrade membership
+  if (pathname === '/api/upgrade' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user) return send(res, 401, { error: 'Unauthorized' });
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { membership, amount } = JSON.parse(body);
+        paystackInitialize(user.email, parseInt(amount) || 20000, (err, result) => {
+          if (err || !result || !result.status) {
+            return send(res, 500, { error: 'Payment failed' });
+          }
+          const data = db.readDb();
+          const u = data.users.find(x => x.email === user.email);
+          if (u) {
+            u.pendingUpgrade = membership;
+            db.writeDb(data);
+          }
+          send(res, 200, { authorization_url: result.data.authorization_url });
+        });
       } catch (e) { send(res, 500, { error: 'Server error' }); }
     });
     return;
