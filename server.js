@@ -226,7 +226,11 @@ const server = http.createServer((req, res) => {
         if (walletType === 'referral') u.referralWallet = (u.referralWallet || 0) - amt;
         else u.taskWallet = (u.taskWallet || 0) - amt;
         data.withdrawals = data.withdrawals || [];
-        data.withdrawals.push({ userId: u.email, amount: amt, bankName, accountNumber, accountName, status: 'pending', date: new Date().toISOString() });
+        data.withdrawals.push({ 
+          id: Date.now().toString(),
+          userId: u.email, amount: amt, bankName, accountNumber, accountName, 
+          status: 'pending', date: new Date().toISOString() 
+        });
         db.writeDb(data);
         send(res, 200, { success: true });
       } catch (e) { send(res, 500, { error: 'Server error' }); }
@@ -265,6 +269,46 @@ const server = http.createServer((req, res) => {
     const data = db.readDb();
     const users = data.users.map(u => ({ name: u.name, email: u.email, membership: u.membership, taskWallet: u.taskWallet, referralWallet: u.referralWallet }));
     send(res, 200, users);
+    return;
+  }
+
+  if (pathname === '/api/admin/withdrawals' && req.method === 'GET') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
+    const data = db.readDb();
+    send(res, 200, data.withdrawals || []);
+    return;
+  }
+
+  if (pathname === '/api/admin/auto-approve' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
+    const data = db.readDb();
+    let count = 0;
+    (data.withdrawals || []).forEach(w => {
+      if (w.status === 'pending') {
+        w.status = 'approved';
+        count++;
+      }
+    });
+    db.writeDb(data);
+    send(res, 200, { success: true, count });
+    return;
+  }
+
+  if (pathname === '/api/admin/deduct-fee' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
+    const data = db.readDb();
+    let count = 0;
+    data.users.forEach(u => {
+      if (u.membership && u.membership !== 'free' && (u.taskWallet || 0) >= 5000) {
+        u.taskWallet = (u.taskWallet || 0) - 5000;
+        count++;
+      }
+    });
+    db.writeDb(data);
+    send(res, 200, { success: true, count });
     return;
   }
 
