@@ -8,31 +8,38 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #050510; color: #fff; padding: 20px; }
     h1 { margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.85rem; }
+    h2 { margin: 20px 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.85rem; }
     th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid rgba(124,58,237,0.3); }
     th { color: #a78bfa; }
     .logout { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; }
-    .section { margin-top: 24px; }
-    .btn { background: #7c3aed; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .btn { background: #7c3aed; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+    .btn.on { background: #22c55e; }
+    .btn.off { background: #64748b; }
+    .btn.danger { background: #ef4444; }
   </style>
 </head>
 <body>
   <button class="logout" onclick="logout()">Logout</button>
   <h1>Admin Panel</h1>
 
-  <div class="section">
-    <h2>Users</h2>
-    <div id="users">Loading...</div>
+  <div class="controls">
+    <button class="btn off" id="autoApproveBtn" onclick="toggleAutoApprove()">Auto-Approve: OFF</button>
+    <button class="btn danger" onclick="deductMonthlyFee()">Deduct ₦5,000 Fee</button>
   </div>
 
-  <div class="section">
-    <h2>Withdrawal Requests</h2>
-    <div id="withdrawals">Loading...</div>
-  </div>
+  <h2>Users</h2>
+  <div id="users">Loading...</div>
+
+  <h2>Withdrawal Requests</h2>
+  <div id="withdrawals">Loading...</div>
 
   <script>
     const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
     if (!token) window.location.href = '/login.html';
+
+    let autoApprove = false;
 
     async function loadUsers() {
       try {
@@ -45,13 +52,7 @@
         }
         let html = '<table><tr><th>Name</th><th>Email</th><th>Membership</th><th>Task Wallet</th><th>Referral</th></tr>';
         users.forEach(function(u) {
-          html += '<tr>';
-          html += '<td>' + (u.name || '-') + '</td>';
-          html += '<td>' + u.email + '</td>';
-          html += '<td>' + (u.membership || 'free') + '</td>';
-          html += '<td>₦' + (u.taskWallet || 0) + '</td>';
-          html += '<td>₦' + (u.referralWallet || 0) + '</td>';
-          html += '</tr>';
+          html += '<tr><td>' + (u.name || '-') + '</td><td>' + u.email + '</td><td>' + (u.membership || 'free') + '</td><td>₦' + (u.taskWallet || 0) + '</td><td>₦' + (u.referralWallet || 0) + '</td></tr>';
         });
         html += '</table>';
         document.getElementById('users').innerHTML = html;
@@ -69,20 +70,9 @@
           document.getElementById('withdrawals').innerHTML = '<p>No withdrawal requests.</p>';
           return;
         }
-        let html = '<table><tr><th>User</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th><th>Action</th></tr>';
+        let html = '<table><tr><th>User</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th></tr>';
         withdrawals.forEach(function(w) {
-          html += '<tr>';
-          html += '<td>' + w.userId + '</td>';
-          html += '<td>₦' + w.amount + '</td>';
-          html += '<td>' + (w.bankName || '-') + '</td>';
-          html += '<td>' + (w.accountNumber || '-') + '</td>';
-          html += '<td>' + (w.status || 'pending') + '</td>';
-          html += '<td>';
-          if (w.status === 'pending') {
-            html += '<button class="btn" onclick="approveWithdrawal(\'' + w.id + '\')">Approve</button>';
-          }
-          html += '</td>';
-          html += '</tr>';
+          html += '<tr><td>' + w.userId + '</td><td>₦' + w.amount + '</td><td>' + (w.bankName || '-') + '</td><td>' + (w.accountNumber || '-') + '</td><td>' + (w.status || 'pending') + '</td></tr>';
         });
         html += '</table>';
         document.getElementById('withdrawals').innerHTML = html;
@@ -91,16 +81,41 @@
       }
     }
 
-    async function approveWithdrawal(id) {
+    async function toggleAutoApprove() {
+      autoApprove = !autoApprove;
+      const btn = document.getElementById('autoApproveBtn');
+      btn.textContent = autoApprove ? 'Auto-Approve: ON' : 'Auto-Approve: OFF';
+      btn.className = autoApprove ? 'btn on' : 'btn off';
+      
+      if (autoApprove) {
+        try {
+          const res = await fetch('/api/admin/auto-approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+          });
+          if (res.ok) {
+            alert('All pending withdrawals approved');
+            loadWithdrawals();
+          }
+        } catch (e) {
+          alert('Error');
+        }
+      }
+    }
+
+    async function deductMonthlyFee() {
+      if (!confirm('Deduct ₦5,000 from all active users?')) return;
       try {
-        const res = await fetch('/api/admin/approve-withdrawal', {
+        const res = await fetch('/api/admin/deduct-fee', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ id: id })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
         });
+        const result = await res.json();
         if (res.ok) {
-          alert('Approved');
-          loadWithdrawals();
+          alert('Fee deducted from ' + (result.count || 0) + ' users');
+          loadUsers();
+        } else {
+          alert(result.error || 'Failed');
         }
       } catch (e) {
         alert('Error');
