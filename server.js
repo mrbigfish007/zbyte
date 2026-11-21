@@ -296,19 +296,27 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Deduct monthly fee and credit admin wallet
   if (pathname === '/api/admin/deduct-fee' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
     const data = db.readDb();
+    let totalDeducted = 0;
     let count = 0;
     data.users.forEach(u => {
       if (u.membership && u.membership !== 'free' && (u.taskWallet || 0) >= 5000) {
         u.taskWallet = (u.taskWallet || 0) - 5000;
+        totalDeducted += 5000;
         count++;
       }
     });
+    // Credit admin wallet
+    const admin = data.users.find(u => u.email === 'admin@zbyte.com.ng');
+    if (admin) {
+      admin.taskWallet = (admin.taskWallet || 0) + totalDeducted;
+    }
     db.writeDb(data);
-    send(res, 200, { success: true, count });
+    send(res, 200, { success: true, count, totalDeducted });
     return;
   }
 
