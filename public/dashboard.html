@@ -48,12 +48,16 @@
     .chart { height: 120px; background: linear-gradient(to top, rgba(124,58,237,0.2), transparent); border-radius: 8px; margin-top: 10px; display: flex; align-items: flex-end; justify-content: space-around; padding: 10px; }
     .bar { width: 12px; background: #7c3aed; border-radius: 4px 4px 0 0; }
     input, select { width:100%; background:rgba(30,30,60,0.6); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:12px; color:white; margin-bottom:10px; }
-    .upgrade-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; }
+    .upgrade-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:100; align-items:center; justify-content:center; overflow-y:auto; padding:20px; }
     .upgrade-modal.show { display:flex; }
-    .upgrade-content { background:#1a1a2e; border-radius:16px; padding:24px; max-width:340px; width:90%; }
-    .plan-option { background:rgba(30,30,60,0.6); border:2px solid rgba(124,58,237,0.2); border-radius:12px; padding:12px 16px; margin-bottom:10px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
-    .plan-option:hover { border-color:#7c3aed; }
-    .plan-option.selected { border-color:#7c3aed; background:rgba(124,58,237,0.15); }
+    .upgrade-content { background:#1a1a2e; border-radius:16px; padding:24px; max-width:400px; width:100%; max-height:90vh; overflow-y:auto; }
+    .plan-card { background:rgba(30,30,60,0.6); border:2px solid rgba(124,58,237,0.2); border-radius:12px; padding:16px; margin-bottom:12px; }
+    .plan-card.selected { border-color:#7c3aed; background:rgba(124,58,237,0.15); }
+    .plan-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .plan-name { font-weight:700; font-size:1.1rem; }
+    .plan-price { color:#a78bfa; font-weight:700; }
+    .plan-features { font-size:0.8rem; color:#94a3b8; }
+    .plan-features li { margin:4px 0; }
   </style>
 </head>
 <body>
@@ -149,23 +153,34 @@
 
   <div class="upgrade-modal" id="upgradeModal">
     <div class="upgrade-content">
-      <h3 style="margin-bottom:8px;">Upgrade Membership</h3>
+      <h3 style="margin-bottom:4px;">Upgrade Membership</h3>
       <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:16px;">Current plan: <span id="currentPlan">Free</span></p>
       
-      <div class="plan-option" onclick="selectUpgrade('silver', 20000)" id="plan-silver">
-        <div>
-          <div style="font-weight:600;">Silver Membership</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">More features</div>
+      <div class="plan-card" onclick="selectUpgrade('silver', 20000)" id="plan-silver">
+        <div class="plan-header">
+          <div class="plan-name">🥈 Silver</div>
+          <div class="plan-price">₦20,000</div>
         </div>
-        <div style="color:#a78bfa; font-weight:700;">₦20,000</div>
+        <ul class="plan-features">
+          <li>✓ Access to basic surveys</li>
+          <li>✓ Earn up to ₦500 per task</li>
+          <li>✓ Referral bonuses</li>
+          <li>✓ Standard support</li>
+        </ul>
       </div>
       
-      <div class="plan-option" onclick="selectUpgrade('gold', 30000)" id="plan-gold">
-        <div>
-          <div style="font-weight:600;">Gold Membership</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Full access</div>
+      <div class="plan-card" onclick="selectUpgrade('gold', 30000)" id="plan-gold">
+        <div class="plan-header">
+          <div class="plan-name">👑 Gold</div>
+          <div class="plan-price">₦30,000</div>
         </div>
-        <div style="color:#a78bfa; font-weight:700;">₦30,000</div>
+        <ul class="plan-features">
+          <li>✓ Access to all surveys</li>
+          <li>✓ Earn up to ₦1,000 per task</li>
+          <li>✓ Higher referral bonuses</li>
+          <li>✓ Priority support</li>
+          <li>✓ Exclusive tasks</li>
+        </ul>
       </div>
 
       <button onclick="proceedToPay()" style="width:100%; margin-top:8px;" id="payBtn" disabled>Select a plan</button>
@@ -209,7 +224,7 @@
     function selectUpgrade(plan, amount) {
       selectedUpgrade = plan;
       selectedAmount = amount;
-      document.querySelectorAll('.plan-option').forEach(p => p.classList.remove('selected'));
+      document.querySelectorAll('.plan-card').forEach(p => p.classList.remove('selected'));
       document.getElementById('plan-' + plan).classList.add('selected');
       document.getElementById('payBtn').disabled = false;
       document.getElementById('payBtn').textContent = 'Pay ₦' + amount.toLocaleString();
