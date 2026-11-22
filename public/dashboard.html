@@ -92,7 +92,7 @@
       <div class="stats">
         <div class="stat-card"><div class="label">Task Wallet</div><div class="value" id="taskWallet">₦0</div></div>
         <div class="stat-card"><div class="label">Referral Wallet</div><div class="value" id="referralWallet">₦0</div></div>
-        <div class="stat-card"><div class="label">Tasks Done</div><div class="value">0</div></div>
+        <div class="stat-card"><div class="label">Tasks Done</div><div class="value" id="tasksDone">0</div></div>
         <div class="stat-card"><div class="label">Referral Code</div><div class="value" id="refCode" style="font-size:1rem;">ADMIN01</div></div>
       </div>
 
@@ -277,6 +277,8 @@
         document.getElementById('totalBalance').textContent = '₦' + (task + referral).toLocaleString() + '.00';
         document.getElementById('refCode').textContent = user.referralCode || 'ADMIN01';
         document.getElementById('referralLink').value = 'https://zbyte-production.up.railway.app/register.html?ref=' + (user.referralCode || 'ADMIN01');
+        const tasksDone = user.completedTasks ? user.completedTasks.length : 0;
+        document.getElementById('tasksDone').textContent = tasksDone;
       } catch (e) { document.getElementById('welcomeName').textContent = 'User'; }
     }
 
