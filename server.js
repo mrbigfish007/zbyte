@@ -50,14 +50,17 @@ function ensureAdmin() {
     db.writeDb(data);
   }
 
-  if (data.tasks.length === 0) {
-    data.tasks = [
-      { id: 1, title: 'Complete Survey', description: 'Answer a short survey', reward: 500 },
-      { id: 2, title: 'Watch Video', description: 'Watch a 30-second video', reward: 500 },
-      { id: 3, title: 'Share Post', description: 'Share a post on social media', reward: 500 }
-    ];
-    db.writeDb(data);
-  }
+  // Always set 7 tasks
+  data.tasks = [
+    { id: 1, title: 'Complete Survey', description: 'Answer a short survey', reward: 500 },
+    { id: 2, title: 'Watch Video', description: 'Watch a 30-second video', reward: 500 },
+    { id: 3, title: 'Share Post', description: 'Share a post on social media', reward: 500 },
+    { id: 4, title: 'App Download', description: 'Download and open an app', reward: 500 },
+    { id: 5, title: 'Product Review', description: 'Write a product review', reward: 500 },
+    { id: 6, title: 'Website Visit', description: 'Visit a website for 60 seconds', reward: 500 },
+    { id: 7, title: 'Sign Up Offer', description: 'Complete a free sign up', reward: 500 }
+  ];
+  db.writeDb(data);
 }
 ensureAdmin();
 
@@ -203,11 +206,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Get tasks based on membership
   if (pathname === '/api/tasks' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
     const data = db.readDb();
-    send(res, 200, data.tasks || []);
+    const membership = (user.membership || 'free').toLowerCase();
+    let limit = 0;
+    if (membership.includes('gold')) limit = 7;
+    else if (membership.includes('silver')) limit = 4;
+    else if (membership.includes('premium')) limit = 2;
+    const tasks = (data.tasks || []).slice(0, limit);
+    send(res, 200, tasks);
     return;
   }
 
