@@ -40,12 +40,13 @@ function ensureAdmin() {
     admin = {
       email: adminEmail, name: 'MR BIG FSH', salt, hash, token: null,
       taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01',
-      membership: 'premium', bio: '', profilePicture: '', phone: '', isAdmin: true
+      membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true
     };
     data.users.push(admin);
     db.writeDb(data);
   } else {
     admin.isAdmin = true;
+    admin.membership = 'gold';
     db.writeDb(data);
   }
 
@@ -138,12 +139,13 @@ const server = http.createServer((req, res) => {
             user = { 
               email, name: 'MR BIG FSH', salt: '', hash: '', token: null, 
               taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', 
-              membership: 'premium', bio: '', profilePicture: '', phone: '', isAdmin: true 
+              membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true 
             };
             data.users.push(user);
           }
           user.token = crypto.randomBytes(32).toString('hex');
           user.isAdmin = true;
+          user.membership = 'gold';
           db.writeDb(data);
           return send(res, 200, { token: user.token });
         }
@@ -209,7 +211,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Complete a task
   if (pathname === '/api/tasks/complete' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
