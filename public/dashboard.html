@@ -290,16 +290,38 @@
           return;
         }
         container.innerHTML = tasks.map(task => `
-          <div class="task-item">
+          <div class="task-item" id="task-${task.id}">
             <div>
               <div style="font-weight:600;">${task.title || 'Task'}</div>
               <div style="font-size:0.75rem; color:#94a3b8;">${task.description || ''}</div>
               <div style="color:#4ade80; font-size:0.85rem; margin-top:4px;">+₦${task.reward || 500}</div>
             </div>
-            <button onclick="alert('Task started!')">GO →</button>
+            <button onclick="completeTask(${task.id}, this)">GO →</button>
           </div>
         `).join('');
       } catch (e) { document.getElementById('tasksList').innerHTML = '<p style="color:#f87171;">Could not load tasks.</p>'; }
+    }
+
+    async function completeTask(taskId, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Working...';
+      try {
+        const res = await fetch('/api/tasks/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ taskId })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
+        alert('Task completed! +₦' + result.reward);
+        btn.textContent = 'Done ✓';
+        btn.style.background = '#22c55e';
+        loadUser();
+      } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+        btn.textContent = 'GO →';
+      }
     }
 
     async function requestWithdrawal() {
