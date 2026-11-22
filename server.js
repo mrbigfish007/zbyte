@@ -209,6 +209,33 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Complete a task
+  if (pathname === '/api/tasks/complete' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user) return send(res, 401, { error: 'Unauthorized' });
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { taskId } = JSON.parse(body);
+        const data = db.readDb();
+        const u = data.users.find(x => x.email === user.email);
+        if (!u) return send(res, 404, { error: 'User not found' });
+        const task = (data.tasks || []).find(t => t.id === taskId);
+        if (!task) return send(res, 404, { error: 'Task not found' });
+        u.completedTasks = u.completedTasks || [];
+        if (u.completedTasks.includes(taskId)) {
+          return send(res, 400, { error: 'Already completed' });
+        }
+        u.completedTasks.push(taskId);
+        u.taskWallet = (u.taskWallet || 0) + (task.reward || 500);
+        db.writeDb(data);
+        send(res, 200, { success: true, reward: task.reward || 500 });
+      } catch (e) { send(res, 500, { error: 'Server error' }); }
+    });
+    return;
+  }
+
   if (pathname === '/api/withdraw' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
@@ -296,7 +323,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Deduct monthly fee and credit admin wallet
   if (pathname === '/api/admin/deduct-fee' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
@@ -310,7 +336,6 @@ const server = http.createServer((req, res) => {
         count++;
       }
     });
-    // Credit admin wallet
     const admin = data.users.find(u => u.email === 'admin@zbyte.com.ng');
     if (admin) {
       admin.taskWallet = (admin.taskWallet || 0) + totalDeducted;
