@@ -50,7 +50,6 @@ function ensureAdmin() {
     db.writeDb(data);
   }
 
-  // Always set 7 tasks
   data.tasks = [
     { id: 1, title: 'Complete Survey', description: 'Answer a short survey', reward: 500 },
     { id: 2, title: 'Watch Video', description: 'Watch a 30-second video', reward: 500 },
@@ -172,7 +171,8 @@ const server = http.createServer((req, res) => {
       name: user.name, email: user.email, bio: user.bio || '',
       profilePicture: user.profilePicture || '', membership: user.membership || 'free',
       taskWallet: user.taskWallet || 0, referralWallet: user.referralWallet || 0,
-      referralCode: user.referralCode || '', phone: user.phone || '', isAdmin: !!user.isAdmin
+      referralCode: user.referralCode || '', phone: user.phone || '', isAdmin: !!user.isAdmin,
+      completedTasks: user.completedTasks || []
     });
     return;
   }
@@ -206,7 +206,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Get tasks based on membership
   if (pathname === '/api/tasks' && req.method === 'GET') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
