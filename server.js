@@ -26,6 +26,24 @@ function getAuthUser(req) {
   return data.users.find(u => u.token === token) || null;
 }
 
+function getReferralReward(membership) {
+  const plan = (membership || '').toLowerCase();
+  if (plan.includes('gold')) return 3000;
+  if (plan.includes('silver')) return 2000;
+  if (plan.includes('premium')) return 1000;
+  return 0;
+}
+
+function creditReferrer(data, referralCode, membership) {
+  if (!referralCode) return;
+  const reward = getReferralReward(membership);
+  if (reward <= 0) return;
+  const referrer = data.users.find(u => u.referralCode === referralCode);
+  if (referrer) {
+    referrer.referralWallet = (referrer.referralWallet || 0) + reward;
+  }
+}
+
 function ensureAdmin() {
   const data = db.readDb();
   data.users = data.users || [];
@@ -113,11 +131,14 @@ const server = http.createServer((req, res) => {
         if (data.users.find(u => u.email === email)) return send(res, 400, { error: 'Email already registered' });
         const salt = crypto.randomBytes(16).toString('hex');
         const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-        data.users.push({
+        const newUser = {
           email, name, phone: phone || '', salt, hash, token: null,
           taskWallet: 0, referralWallet: 0, referralCode: 'USER' + Date.now().toString().slice(-6),
           membership: membership || 'free', bio: '', profilePicture: '', referredBy: referral || ''
-        });
+        };
+        data.users.push(newUser);
+        // Credit referrer
+        creditReferrer(data, referral, membership);
         db.writeDb(data);
         paystackInitialize(email, parseInt(amount) || 10000, (err, result) => {
           if (err || !result || !result.status) return send(res, 200, { success: true });
