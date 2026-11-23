@@ -8,12 +8,33 @@ const db = require('./lib/db');
 const PORT = process.env.PORT || 3000;
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || '';
 
+// Rate limiting
+const rateLimit = new Map();
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const window = 60000;
+  const max = 30;
+  const record = rateLimit.get(ip) || { count: 0, start: now };
+  if (now - record.start > window) {
+    rateLimit.set(ip, { count: 1, start: now });
+    return true;
+  }
+  if (record.count >= max) return false;
+  record.count++;
+  rateLimit.set(ip, record);
+  return true;
+}
+
 function send(res, status, data) {
   res.writeHead(status, { 
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
   });
   res.end(JSON.stringify(data));
 }
@@ -22,6 +43,7 @@ function getAuthUser(req) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) return null;
   const token = auth.slice(7);
+  if (!token || token.length < 32) return null;
   const data = db.readDb();
   return data.users.find(u => u.token === token) || null;
 }
@@ -35,13 +57,18 @@ function getReferralReward(membership) {
 }
 
 function creditReferrer(data, referralCode, membership) {
-  if (!referralCode) return;
+  if (!referralCode || typeof referralCode !== 'string') return;
   const reward = getReferralReward(membership);
   if (reward <= 0) return;
   const referrer = data.users.find(u => u.referralCode === referralCode);
   if (referrer) {
     referrer.referralWallet = (referrer.referralWallet || 0) + reward;
   }
+}
+
+function sanitize(str) {
+  if (typeof str !== 'string') return '';
+  return str.trim().slice(0, 200).replace(/[<>]/g, '');
 }
 
 function ensureAdmin() {
@@ -99,6 +126,11 @@ function paystackInitialize(email, amount, callback) {
 }
 
 const server = http.createServer((req, res) => {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return send(res, 429, { error: 'Too many requests' });
+  }
+
   if (req.method === 'OPTIONS') {
     res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,Authorization' });
     res.end();
@@ -114,19 +146,34 @@ const server = http.createServer((req, res) => {
     if (fs.existsSync(fullPath)) {
       const ext = path.extname(fullPath);
       const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' }[ext] || 'text/plain';
-      res.writeHead(200, { 'Content-Type': mime });
+      res.writeHead(200, { 'Content-Type': mime, 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY' });
       fs.createReadStream(fullPath).pipe(res);
       return;
     }
   }
 
+  let body = '';
+  req.on('data', chunk => {
+    body += chunk;
+    if (body.length > 100000) {
+      req.destroy();
+    }
+  });
+
   if (pathname === '/api/auth/register' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
-        const { name, email, password, phone, referral, membership, amount } = JSON.parse(body);
+        const parsed = JSON.parse(body);
+        const name = sanitize(parsed.name);
+        const email = sanitize(parsed.email).toLowerCase();
+        const password = parsed.password;
+        const phone = sanitize(parsed.phone);
+        const referral = sanitize(parsed.referral);
+        const membership = sanitize(parsed.membership);
+        const amount = parseInt(parsed.amount) || 10000;
         if (!name || !email || !password) return send(res, 400, { error: 'Missing fields' });
+        if (password.length < 6) return send(res, 400, { error: 'Password too short' });
+        if (!email.includes('@')) return send(res, 400, { error: 'Invalid email' });
         const data = db.readDb();
         if (data.users.find(u => u.email === email)) return send(res, 400, { error: 'Email already registered' });
         const salt = crypto.randomBytes(16).toString('hex');
@@ -137,10 +184,9 @@ const server = http.createServer((req, res) => {
           membership: membership || 'free', bio: '', profilePicture: '', referredBy: referral || ''
         };
         data.users.push(newUser);
-        // Credit referrer
         creditReferrer(data, referral, membership);
         db.writeDb(data);
-        paystackInitialize(email, parseInt(amount) || 10000, (err, result) => {
+        paystackInitialize(email, amount, (err, result) => {
           if (err || !result || !result.status) return send(res, 200, { success: true });
           send(res, 200, { success: true, authorization_url: result.data.authorization_url });
         });
@@ -150,17 +196,16 @@ const server = http.createServer((req, res) => {
   }
 
   if (pathname === '/api/auth/login' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
         const { email, password } = JSON.parse(body);
-        if (email === 'admin@zbyte.com.ng' && password === 'admin') {
+        const cleanEmail = sanitize(email).toLowerCase();
+        if (cleanEmail === 'admin@zbyte.com.ng' && password === 'admin') {
           const data = db.readDb();
-          let user = data.users.find(u => u.email === email);
+          let user = data.users.find(u => u.email === cleanEmail);
           if (!user) {
             user = { 
-              email, name: 'MR BIG FSH', salt: '', hash: '', token: null, 
+              email: cleanEmail, name: 'MR BIG FSH', salt: '', hash: '', token: null, 
               taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', 
               membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true 
             };
@@ -173,7 +218,7 @@ const server = http.createServer((req, res) => {
           return send(res, 200, { token: user.token });
         }
         const data = db.readDb();
-        const user = data.users.find(u => u.email === email);
+        const user = data.users.find(u => u.email === cleanEmail);
         if (!user) return send(res, 401, { error: 'Invalid credentials' });
         const hash = crypto.pbkdf2Sync(password, user.salt, 100000, 64, 'sha512').toString('hex');
         if (hash !== user.hash) return send(res, 401, { error: 'Invalid credentials' });
@@ -201,22 +246,21 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/user/update' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
-    let body = '';
-    req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
         const updates = JSON.parse(body);
         const data = db.readDb();
         const u = data.users.find(x => x.email === user.email);
         if (!u) return send(res, 404, { error: 'User not found' });
-        if (updates.name) u.name = updates.name;
-        if (updates.bio !== undefined) u.bio = updates.bio;
-        if (updates.profilePicture) u.profilePicture = updates.profilePicture;
-        if (updates.phone) u.phone = updates.phone;
-        if (updates.membership) u.membership = updates.membership;
+        if (updates.name) u.name = sanitize(updates.name);
+        if (updates.bio !== undefined) u.bio = sanitize(updates.bio);
+        if (updates.profilePicture) u.profilePicture = sanitize(updates.profilePicture);
+        if (updates.phone) u.phone = sanitize(updates.phone);
+        if (updates.membership) u.membership = sanitize(updates.membership);
         if (updates.password && updates.currentPassword) {
           const hash = crypto.pbkdf2Sync(updates.currentPassword, u.salt, 100000, 64, 'sha512').toString('hex');
           if (hash !== u.hash) return send(res, 400, { error: 'Wrong current password' });
+          if (updates.password.length < 6) return send(res, 400, { error: 'Password too short' });
           u.salt = crypto.randomBytes(16).toString('hex');
           u.hash = crypto.pbkdf2Sync(updates.password, u.salt, 100000, 64, 'sha512').toString('hex');
         }
@@ -244,8 +288,6 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/tasks/complete' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
-    let body = '';
-    req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
         const { taskId } = JSON.parse(body);
@@ -270,23 +312,25 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/withdraw' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
-    let body = '';
-    req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
-        const { walletType, amount, bankName, accountNumber, accountName } = JSON.parse(body);
+        const parsed = JSON.parse(body);
+        const walletType = sanitize(parsed.walletType);
+        const amount = parseFloat(parsed.amount);
+        const bankName = sanitize(parsed.bankName);
+        const accountNumber = sanitize(parsed.accountNumber);
+        const accountName = sanitize(parsed.accountName);
         const data = db.readDb();
         const u = data.users.find(x => x.email === user.email);
-        const amt = parseFloat(amount);
-        if (!amt || amt <= 0) return send(res, 400, { error: 'Invalid amount' });
+        if (!amount || amount <= 0) return send(res, 400, { error: 'Invalid amount' });
         const balance = walletType === 'referral' ? (u.referralWallet || 0) : (u.taskWallet || 0);
-        if (amt > balance) return send(res, 400, { error: 'Insufficient balance' });
-        if (walletType === 'referral') u.referralWallet = (u.referralWallet || 0) - amt;
-        else u.taskWallet = (u.taskWallet || 0) - amt;
+        if (amount > balance) return send(res, 400, { error: 'Insufficient balance' });
+        if (walletType === 'referral') u.referralWallet = (u.referralWallet || 0) - amount;
+        else u.taskWallet = (u.taskWallet || 0) - amount;
         data.withdrawals = data.withdrawals || [];
         data.withdrawals.push({ 
           id: Date.now().toString(),
-          userId: u.email, amount: amt, bankName, accountNumber, accountName, 
+          userId: u.email, amount, bankName, accountNumber, accountName, 
           status: 'pending', date: new Date().toISOString() 
         });
         db.writeDb(data);
@@ -299,8 +343,6 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/upgrade' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user) return send(res, 401, { error: 'Unauthorized' });
-    let body = '';
-    req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
         const { membership, amount } = JSON.parse(body);
@@ -311,7 +353,7 @@ const server = http.createServer((req, res) => {
           const data = db.readDb();
           const u = data.users.find(x => x.email === user.email);
           if (u) {
-            u.pendingUpgrade = membership;
+            u.pendingUpgrade = sanitize(membership);
             db.writeDb(data);
           }
           send(res, 200, { authorization_url: result.data.authorization_url });
