@@ -3,128 +3,143 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin – ZBYTE</title>
+  <title>Admin Panel – ZBYTE</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #050510; color: #fff; padding: 20px; }
+    body { font-family: system-ui, sans-serif; background: #050510; color: #fff; padding: 20px; max-width: 900px; margin: 0 auto; }
     h1 { margin-bottom: 16px; }
-    h2 { margin: 20px 0 12px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.85rem; }
-    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid rgba(124,58,237,0.3); }
+    button { background: #7c3aed; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; margin-right: 8px; }
+    button.danger { background: #ef4444; }
+    button.secondary { background: #334155; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #333; }
     th { color: #a78bfa; }
-    .logout { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; }
-    .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-    .btn { background: #7c3aed; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
-    .btn.on { background: #22c55e; }
-    .btn.off { background: #64748b; }
-    .btn.danger { background: #ef4444; }
+    .logout { background: #ef4444; margin-bottom: 20px; }
+    .section { margin-bottom: 30px; }
+    .withdrawal-card { background: rgba(30,30,60,0.6); border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .withdrawal-card p { margin: 4px 0; font-size: 0.85rem; }
+    .status-pending { color: #f59e0b; }
+    .status-approved { color: #22c55e; }
   </style>
 </head>
 <body>
   <button class="logout" onclick="logout()">Logout</button>
   <h1>Admin Panel</h1>
 
-  <div class="controls">
-    <button class="btn off" id="autoApproveBtn" onclick="toggleAutoApprove()">Auto-Approve: OFF</button>
-    <button class="btn danger" onclick="deductMonthlyFee()">Deduct ₦5,000 Fee</button>
+  <div style="margin-bottom: 20px;">
+    <button class="secondary" id="autoApproveBtn" onclick="toggleAutoApprove()">Auto-Approve: OFF</button>
+    <button class="danger" onclick="deductFee()">Deduct ₦5,000 Fee</button>
   </div>
 
-  <h2>Users</h2>
-  <div id="users">Loading...</div>
+  <div class="section">
+    <h2>Users</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Membership</th>
+          <th>Paid</th>
+        </tr>
+      </thead>
+      <tbody id="usersTable"></tbody>
+    </table>
+  </div>
 
-  <h2>Withdrawal Requests</h2>
-  <div id="withdrawals">Loading...</div>
+  <div class="section">
+    <h2>Withdrawal Requests</h2>
+    <div id="withdrawalsList">Loading...</div>
+  </div>
 
   <script>
     const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
     if (!token) window.location.href = '/login.html';
 
-    let autoApprove = false;
+    let autoApproveOn = false;
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
 
     async function loadUsers() {
       try {
         const res = await fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + token } });
-        if (!res.ok) throw new Error('Access denied');
         const users = await res.json();
-        if (!users.length) {
-          document.getElementById('users').innerHTML = '<p>No users yet.</p>';
+        const tbody = document.getElementById('usersTable');
+        if (!users || users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
           return;
         }
-        let html = '<table><tr><th>Name</th><th>Email</th><th>Membership</th><th>Task Wallet</th><th>Referral</th></tr>';
-        users.forEach(function(u) {
-          html += '<tr><td>' + (u.name || '-') + '</td><td>' + u.email + '</td><td>' + (u.membership || 'free') + '</td><td>₦' + (u.taskWallet || 0) + '</td><td>₦' + (u.referralWallet || 0) + '</td></tr>';
-        });
-        html += '</table>';
-        document.getElementById('users').innerHTML = html;
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td>${u.name || '-'}</td>
+            <td>${u.email || '-'}</td>
+            <td>${u.phone || '-'}</td>
+            <td>${u.membership || 'free'}</td>
+            <td>${u.paid ? 'Yes' : 'No'}</td>
+          </tr>
+        `).join('');
       } catch (e) {
-        document.getElementById('users').innerHTML = '<p style="color:#f87171;">' + e.message + '</p>';
+        document.getElementById('usersTable').innerHTML = '<tr><td colspan="5">Error loading users.</td></tr>';
       }
     }
 
     async function loadWithdrawals() {
       try {
         const res = await fetch('/api/admin/withdrawals', { headers: { 'Authorization': 'Bearer ' + token } });
-        if (!res.ok) throw new Error('Could not load');
         const withdrawals = await res.json();
-        if (!withdrawals.length) {
-          document.getElementById('withdrawals').innerHTML = '<p>No withdrawal requests.</p>';
+        const container = document.getElementById('withdrawalsList');
+        if (!withdrawals || withdrawals.length === 0) {
+          container.innerHTML = '<p>No withdrawal requests.</p>';
           return;
         }
-        let html = '<table><tr><th>User</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th></tr>';
-        withdrawals.forEach(function(w) {
-          html += '<tr><td>' + w.userId + '</td><td>₦' + w.amount + '</td><td>' + (w.bankName || '-') + '</td><td>' + (w.accountNumber || '-') + '</td><td>' + (w.status || 'pending') + '</td></tr>';
-        });
-        html += '</table>';
-        document.getElementById('withdrawals').innerHTML = html;
+        container.innerHTML = withdrawals.map(w => `
+          <div class="withdrawal-card">
+            <p><strong>User:</strong> ${w.userId || '-'}</p>
+            <p><strong>Amount:</strong> ₦${(w.amount || 0).toLocaleString()}</p>
+            <p><strong>Bank:</strong> ${w.bankName || '-'}</p>
+            <p><strong>Account Number:</strong> ${w.accountNumber || '-'}</p>
+            <p><strong>Account Name:</strong> ${w.accountName || '-'}</p>
+            <p><strong>Status:</strong> <span class="status-\( {w.status || 'pending'}"> \){w.status || 'pending'}</span></p>
+            <p><strong>Date:</strong> ${w.date ? new Date(w.date).toLocaleString() : '-'}</p>
+          </div>
+        `).join('');
       } catch (e) {
-        document.getElementById('withdrawals').innerHTML = '<p>No withdrawals yet.</p>';
+        document.getElementById('withdrawalsList').innerHTML = '<p>Error loading withdrawals.</p>';
       }
     }
 
     async function toggleAutoApprove() {
-      autoApprove = !autoApprove;
-      const btn = document.getElementById('autoApproveBtn');
-      btn.textContent = autoApprove ? 'Auto-Approve: ON' : 'Auto-Approve: OFF';
-      btn.className = autoApprove ? 'btn on' : 'btn off';
-      
-      if (autoApprove) {
+      autoApproveOn = !autoApproveOn;
+      document.getElementById('autoApproveBtn').textContent = 'Auto-Approve: ' + (autoApproveOn ? 'ON' : 'OFF');
+      if (autoApproveOn) {
         try {
-          const res = await fetch('/api/admin/auto-approve', {
+          await fetch('/api/admin/auto-approve', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+            headers: { 'Authorization': 'Bearer ' + token }
           });
-          if (res.ok) {
-            alert('All pending withdrawals approved');
-            loadWithdrawals();
-          }
+          alert('All pending withdrawals approved.');
+          loadWithdrawals();
         } catch (e) {
-          alert('Error');
+          alert('Error approving withdrawals.');
         }
       }
     }
 
-    async function deductMonthlyFee() {
+    async function deductFee() {
       if (!confirm('Deduct ₦5,000 from all active users?')) return;
       try {
         const res = await fetch('/api/admin/deduct-fee', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+          headers: { 'Authorization': 'Bearer ' + token }
         });
         const result = await res.json();
-        if (res.ok) {
-          alert('Fee deducted from ' + (result.count || 0) + ' users');
-          loadUsers();
-        } else {
-          alert(result.error || 'Failed');
-        }
+        alert('Fee deducted from ' + (result.count || 0) + ' users. Total: ₦' + (result.totalDeducted || 0).toLocaleString());
+        loadUsers();
       } catch (e) {
-        alert('Error');
+        alert('Error deducting fee.');
       }
-    }
-
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/login.html';
     }
 
     loadUsers();
