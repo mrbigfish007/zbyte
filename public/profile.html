@@ -3,363 +3,193 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile Settings – ZBYTE</title>
-  <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+  <title>Profile – ZBYTE</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #050510; color: #ffffff; min-height: 100vh; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #050510; color: #ffffff; min-height: 100vh; padding-bottom: 90px; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; }
-    .logo { font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #7c3aed, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .home-btn { width: 40px; height: 40px; background: rgba(124,58,237,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; text-decoration: none; color: white; font-size: 1.2rem; }
-    .container { max-width: 440px; margin: 10px auto; padding: 0 16px 30px; }
-    .title { font-size: 0.85rem; color: #a78bfa; letter-spacing: 1px; margin-bottom: 4px; }
-    .subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
-    .user-card { background: rgba(15,15,35,0.9); border: 1px solid rgba(124,58,237,0.3); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-    .avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg,#1e1b4b,#312e81); border: 2px solid #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; overflow: hidden; }
+    .logo { font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg,#7c3aed,#3b82f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .container { max-width: 480px; margin: 0 auto; padding: 10px 16px; }
+    .profile-header { text-align: center; margin-bottom: 24px; }
+    .avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg,#7c3aed,#4f46e5); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; margin: 0 auto 12px; overflow: hidden; }
     .avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .bio-text { font-size: 0.85rem; color: #c4b5fd; margin-top: 6px; line-height: 1.4; }
-    .menu-item { background: rgba(15,15,35,0.9); border: 1px solid rgba(124,58,237,0.2); border-radius: 14px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer; }
-    .menu-left { display: flex; align-items: center; gap: 12px; }
-    .icon { width: 38px; height: 38px; background: rgba(124,58,237,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-    .logout { border-color: rgba(239,68,68,0.4); }
-    .logout .icon { background: rgba(239,68,68,0.2); }
-    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; }
-    .modal-content { background: #0f0f23; border: 1px solid rgba(124,58,237,0.4); border-radius: 16px; padding: 24px; width: 90%; max-width: 360px; }
-    .modal-content h3 { margin-bottom: 16px; }
-    .modal-content input, .modal-content textarea { width: 100%; background: rgba(30,30,60,0.6); border: 1px solid rgba(124,58,237,0.3); border-radius: 10px; padding: 12px; color: white; margin-bottom: 12px; }
-    .modal-content button { width: 100%; background: linear-gradient(135deg,#7c3aed,#4f46e5); color: white; border: none; padding: 12px; border-radius: 10px; margin-top: 8px; cursor: pointer; }
-    .close { float: right; cursor: pointer; font-size: 1.3rem; }
-    .msg { margin-top: 10px; font-size: 0.9rem; }
-    .success { color: #4ade80; }
-    .error { color: #f87171; }
-    .footer { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #64748b; }
+    .name { font-size: 1.3rem; font-weight: 700; }
+    .email { color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }
+    .card { background: rgba(15,15,35,0.85); border: 1px solid rgba(124,58,237,0.25); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+    .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.08); cursor: pointer; }
+    .menu-item:last-child { border-bottom: none; }
+    .menu-item span { display: flex; align-items: center; gap: 10px; }
+    input, textarea { width: 100%; background: rgba(30,30,60,0.6); border: 1px solid rgba(124,58,237,0.3); border-radius: 10px; padding: 12px; color: white; margin-bottom: 10px; }
+    textarea { min-height: 80px; resize: vertical; }
+    button { background: linear-gradient(135deg,#7c3aed,#4f46e5); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; }
+    button.secondary { background: #334155; margin-top: 8px; }
+    .logout { background: #ef4444; padding: 6px 12px; font-size: 0.8rem; width: auto; }
+    .nav { position: fixed; bottom: 16px; left: 16px; right: 16px; background: rgba(20,20,40,0.95); border: 1px solid rgba(124,58,237,0.2); border-radius: 20px; display: flex; justify-content: space-around; padding: 8px; }
+    .nav a { color: #94a3b8; text-decoration: none; font-size: 0.65rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 12px; border-radius: 14px; }
+    .nav a.active { background: linear-gradient(135deg,#7c3aed,#4f46e5); color: white; }
+    .nav-icon { font-size: 1.2rem; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .notification-item { background: rgba(30,30,60,0.5); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .notification-item .date { font-size: 0.75rem; color: #94a3b8; }
   </style>
 </head>
 <body>
   <header>
     <div class="logo">ZBYTE</div>
-    <a href="/dashboard.html" class="home-btn">🏠</a>
+    <button class="logout" onclick="logout()">Logout</button>
   </header>
 
   <div class="container">
-    <div class="title">PROFILE SETTINGS</div>
-    <div class="subtitle">Manage your account and preferences.</div>
-
-    <div class="user-card">
+    <div class="profile-header">
       <div class="avatar" id="avatar">U</div>
-      <div>
-        <div id="userName" style="font-weight:600; font-size:1.15rem;">User</div>
-        <div style="font-size:0.8rem; color:#a78bfa; margin-top:2px;">✓ ZBYTE User</div>
-        <div class="bio-text" id="bioDisplay">No bio yet</div>
+      <div class="name" id="userName">User</div>
+      <div class="email" id="userEmail">email@example.com</div>
+    </div>
+
+    <div class="card">
+      <div class="menu-item" onclick="showSection('editProfile')">
+        <span>✏️ Edit Profile</span>
+        <span>›</span>
+      </div>
+      <div class="menu-item" onclick="showSection('notifications')">
+        <span>🔔 Notifications</span>
+        <span>›</span>
+      </div>
+      <div class="menu-item" onclick="contactUs()">
+        <span>💬 Contact Us</span>
+        <span>›</span>
+      </div>
+      <div class="menu-item" onclick="showSection('security')">
+        <span>🔒 Security</span>
+        <span>›</span>
       </div>
     </div>
 
-    <div class="menu-item" onclick="openUploadWidget()">
-      <div class="menu-left">
-        <div class="icon">🖼️</div>
-        <div>
-          <div>Change Profile Picture</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Upload from gallery</div>
+    <div id="editProfile" class="section">
+      <div class="card">
+        <h3 style="margin-bottom: 12px;">Edit Profile</h3>
+        <input type="text" id="editName" placeholder="Name" />
+        <input type="text" id="editPhone" placeholder="Phone" />
+        <textarea id="editBio" placeholder="Bio"></textarea>
+        <button onclick="saveProfile()">Save Changes</button>
+        <button class="secondary" onclick="showSection('main')">Back</button>
+        <div id="profileMsg" style="margin-top: 10px; color: #4ade80;"></div>
+      </div>
+    </div>
+
+    <div id="notifications" class="section">
+      <div class="card">
+        <h3 style="margin-bottom: 12px;">Notifications</h3>
+        <div id="notificationsList">
+          <div class="notification-item">
+            <div>Welcome to ZBYTE! Complete tasks and earn rewards.</div>
+            <div class="date">Today</div>
+          </div>
+          <div class="notification-item">
+            <div>Your membership is active. Start earning now!</div>
+            <div class="date">Today</div>
+          </div>
         </div>
+        <button class="secondary" onclick="showSection('main')">Back</button>
       </div>
-      <span>›</span>
     </div>
 
-    <div class="menu-item" onclick="openModal('editModal')">
-      <div class="menu-left">
-        <div class="icon">👤</div>
-        <div>
-          <div>Edit Profile</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Update your bio</div>
-        </div>
+    <div id="security" class="section">
+      <div class="card">
+        <h3 style="margin-bottom: 12px;">Change Password</h3>
+        <input type="password" id="currentPassword" placeholder="Current Password" />
+        <input type="password" id="newPassword" placeholder="New Password" />
+        <button onclick="changePassword()">Update Password</button>
+        <button class="secondary" onclick="showSection('main')">Back</button>
+        <div id="securityMsg" style="margin-top: 10px; color: #4ade80;"></div>
       </div>
-      <span>›</span>
-    </div>
-
-    <div class="menu-item" onclick="openModal('nameModal')">
-      <div class="menu-left">
-        <div class="icon">✏️</div>
-        <div>
-          <div>Change Name</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Update your display name</div>
-        </div>
-      </div>
-      <span>›</span>
-    </div>
-
-    <div class="menu-item" onclick="openModal('accountModal')">
-      <div class="menu-left">
-        <div class="icon">⚙️</div>
-        <div>
-          <div>Account Settings</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Manage account details</div>
-        </div>
-      </div>
-      <span>›</span>
-    </div>
-
-    <div class="menu-item" onclick="openModal('securityModal')">
-      <div class="menu-left">
-        <div class="icon">🔒</div>
-        <div>
-          <div>Security</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Change password</div>
-        </div>
-      </div>
-      <span>›</span>
-    </div>
-
-    <div class="menu-item" onclick="openModal('notifyModal')">
-      <div class="menu-left">
-        <div class="icon">🔔</div>
-        <div>
-          <div>Notifications</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Manage notifications</div>
-        </div>
-      </div>
-      <span>›</span>
-    </div>
-
-    <div class="menu-item logout" onclick="logout()">
-      <div class="menu-left">
-        <div class="icon">🚪</div>
-        <div>
-          <div style="color:#f87171;">Logout</div>
-          <div style="font-size:0.75rem; color:#94a3b8;">Sign out of your account</div>
-        </div>
-      </div>
-      <span>›</span>
-    </div>
-
-    <div class="footer">🔒 Your security is our priority. ZBYTE</div>
-  </div>
-
-  <!-- Edit Profile Modal -->
-  <div class="modal" id="editModal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal('editModal')">×</span>
-      <h3>Edit Profile</h3>
-      <textarea id="bio" placeholder="Write a short bio..." rows="3"></textarea>
-      <button onclick="updateBio()">Save Bio</button>
-      <div id="bioMsg" class="msg"></div>
     </div>
   </div>
 
-  <!-- Change Name Modal -->
-  <div class="modal" id="nameModal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal('nameModal')">×</span>
-      <h3>Change Name</h3>
-      <input type="text" id="newName" placeholder="New name" />
-      <button onclick="updateName()">Update Name</button>
-      <div id="nameMsg" class="msg"></div>
-    </div>
-  </div>
-
-  <!-- Account Settings Modal -->
-  <div class="modal" id="accountModal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal('accountModal')">×</span>
-      <h3>Account Settings</h3>
-      <input type="email" id="accountEmail" placeholder="Email" readonly />
-      <input type="text" id="accountPhone" placeholder="Phone number" />
-      <button onclick="updateAccount()">Update Account</button>
-      <div id="accountMsg" class="msg"></div>
-    </div>
-  </div>
-
-  <!-- Security Modal -->
-  <div class="modal" id="securityModal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal('securityModal')">×</span>
-      <h3>Security</h3>
-      <input type="password" id="currentPassword" placeholder="Current password" />
-      <input type="password" id="newPassword" placeholder="New password" />
-      <button onclick="updatePassword()">Update Password</button>
-      <div id="passwordMsg" class="msg"></div>
-    </div>
-  </div>
-
-  <!-- Notifications Modal -->
-  <div class="modal" id="notifyModal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal('notifyModal')">×</span>
-      <h3>Notifications</h3>
-      <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-        <input type="checkbox" id="notifyEmail" checked /> Email notifications
-      </label>
-      <label style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-        <input type="checkbox" id="notifyPush" checked /> Push notifications
-      </label>
-      <button onclick="updateNotifications()">Save</button>
-      <div id="notifyMsg" class="msg"></div>
-    </div>
-  </div>
+  <nav class="nav">
+    <a href="/dashboard.html"><div class="nav-icon">🏠</div>Home</a>
+    <a href="/dashboard.html"><div class="nav-icon">📋</div>Tasks</a>
+    <a href="/dashboard.html"><div class="nav-icon">💰</div>Wallet</a>
+    <a href="/profile.html" class="active"><div class="nav-icon">👤</div>Profile</a>
+  </nav>
 
   <script>
     const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
     if (!token) window.location.href = '/login.html';
 
-    const cloudName = 's9wsyljz';
-    const uploadPreset = 'zbyte_profile';
+    function showSection(section) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      if (section !== 'main') {
+        document.getElementById(section).classList.add('active');
+      }
+    }
 
-    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-    function openUploadWidget() {
-      cloudinary.openUploadWidget({
-        cloudName: cloudName,
-        uploadPreset: uploadPreset,
-        sources: ['local', 'camera'],
-        multiple: false,
-        cropping: true,
-        showSkipCropButton: false,
-        croppingAspectRatio: 1,
-        resourceType: 'image'
-      }, async (error, result) => {
-        if (!error && result && result.event === 'success') {
-          const imageUrl = result.info.secure_url;
-          try {
-            const res = await fetch('/api/user/update', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-              body: JSON.stringify({ profilePicture: imageUrl })
-            });
-            if (res.ok) {
-              alert('Profile picture updated!');
-              loadUser();
-            } else {
-              alert('Failed to save picture');
-            }
-          } catch (e) {
-            alert('Failed to save picture');
-          }
-        }
-      });
+    function contactUs() {
+      window.open('https://wa.me/2349010289211', '_blank');
     }
 
     async function loadUser() {
       try {
         const res = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
         const user = await res.json();
-        if (!res.ok) throw new Error();
-        const name = user.name || 'User';
-        document.getElementById('userName').textContent = name;
+        document.getElementById('userName').textContent = user.name || 'User';
+        document.getElementById('userEmail').textContent = user.email || '';
+        document.getElementById('editName').value = user.name || '';
+        document.getElementById('editPhone').value = user.phone || '';
+        document.getElementById('editBio').value = user.bio || '';
         const avatar = document.getElementById('avatar');
         if (user.profilePicture) {
           avatar.innerHTML = `<img src="${user.profilePicture}" alt="Profile" />`;
         } else {
-          avatar.textContent = name.charAt(0).toUpperCase();
+          avatar.textContent = (user.name || 'U').charAt(0).toUpperCase();
         }
-        document.getElementById('bioDisplay').textContent = user.bio || 'No bio yet';
-        document.getElementById('accountEmail').value = user.email || '';
-        document.getElementById('accountPhone').value = user.phone || '';
-        document.getElementById('bio').value = user.bio || '';
+      } catch (e) {}
+    }
+
+    async function saveProfile() {
+      const msg = document.getElementById('profileMsg');
+      msg.textContent = '';
+      try {
+        const res = await fetch('/api/user/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({
+            name: document.getElementById('editName').value,
+            phone: document.getElementById('editPhone').value,
+            bio: document.getElementById('editBio').value
+          })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
+        msg.textContent = 'Profile updated!';
+        loadUser();
       } catch (e) {
-        document.getElementById('userName').textContent = 'MR BIG FSH';
-        document.getElementById('avatar').textContent = 'M';
-        document.getElementById('bioDisplay').textContent = 'No bio yet';
+        msg.textContent = e.message;
+        msg.style.color = '#f87171';
       }
     }
 
-    async function updateName() {
-      const newName = document.getElementById('newName').value.trim();
-      const msg = document.getElementById('nameMsg');
-      if (!newName) { msg.textContent = 'Please enter a name'; msg.className = 'msg error'; return; }
+    async function changePassword() {
+      const msg = document.getElementById('securityMsg');
+      msg.textContent = '';
       try {
         const res = await fetch('/api/user/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ name: newName })
+          body: JSON.stringify({
+            currentPassword: document.getElementById('currentPassword').value,
+            password: document.getElementById('newPassword').value
+          })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed');
-        msg.textContent = 'Name updated!';
-        msg.className = 'msg success';
-        setTimeout(() => { closeModal('nameModal'); loadUser(); }, 1000);
-      } catch (err) {
-        msg.textContent = err.message;
-        msg.className = 'msg error';
-      }
-    }
-
-    async function updatePassword() {
-      const current = document.getElementById('currentPassword').value;
-      const newPass = document.getElementById('newPassword').value;
-      const msg = document.getElementById('passwordMsg');
-      if (!current || !newPass) { msg.textContent = 'Fill both fields'; msg.className = 'msg error'; return; }
-      try {
-        const res = await fetch('/api/user/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ currentPassword: current, password: newPass })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed');
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed');
         msg.textContent = 'Password updated!';
-        msg.className = 'msg success';
-        setTimeout(() => closeModal('securityModal'), 1000);
-      } catch (err) {
-        msg.textContent = err.message;
-        msg.className = 'msg error';
-      }
-    }
-
-    async function updateBio() {
-      const bio = document.getElementById('bio').value.trim();
-      const msg = document.getElementById('bioMsg');
-      try {
-        const res = await fetch('/api/user/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ bio })
-        });
-        if (!res.ok) throw new Error('Failed');
-        msg.textContent = 'Bio updated!';
-        msg.className = 'msg success';
-        setTimeout(() => { closeModal('editModal'); loadUser(); }, 1000);
-      } catch (err) {
-        msg.textContent = err.message;
-        msg.className = 'msg error';
-      }
-    }
-
-    async function updateAccount() {
-      const phone = document.getElementById('accountPhone').value.trim();
-      const msg = document.getElementById('accountMsg');
-      try {
-        const res = await fetch('/api/user/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ phone })
-        });
-        if (!res.ok) throw new Error('Failed');
-        msg.textContent = 'Account updated!';
-        msg.className = 'msg success';
-        setTimeout(() => closeModal('accountModal'), 1000);
-      } catch (err) {
-        msg.textContent = err.message;
-        msg.className = 'msg error';
-      }
-    }
-
-    async function updateNotifications() {
-      const email = document.getElementById('notifyEmail').checked;
-      const push = document.getElementById('notifyPush').checked;
-      const msg = document.getElementById('notifyMsg');
-      try {
-        const res = await fetch('/api/user/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ notifications: { email, push } })
-        });
-        if (!res.ok) throw new Error('Failed');
-        msg.textContent = 'Notifications updated!';
-        msg.className = 'msg success';
-        setTimeout(() => closeModal('notifyModal'), 1000);
-      } catch (err) {
-        msg.textContent = err.message;
-        msg.className = 'msg error';
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+      } catch (e) {
+        msg.textContent = e.message;
+        msg.style.color = '#f87171';
       }
     }
 
