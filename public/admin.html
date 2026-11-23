@@ -5,18 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Panel – ZBYTE</title>
   <style>
-    body { font-family: system-ui, sans-serif; background: #050510; color: #fff; padding: 20px; max-width: 900px; margin: 0 auto; }
-    h1 { margin-bottom: 16px; }
-    button { background: #7c3aed; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; margin-right: 8px; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #050510; color: #fff; padding: 12px; margin: 0; }
+    h1 { font-size: 1.5rem; margin-bottom: 12px; }
+    h2 { font-size: 1.2rem; margin: 20px 0 10px; }
+    button { background: #7c3aed; color: white; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; margin: 4px; font-size: 0.85rem; }
     button.danger { background: #ef4444; }
     button.secondary { background: #334155; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #333; }
-    th { color: #a78bfa; }
-    .logout { background: #ef4444; margin-bottom: 20px; }
-    .section { margin-bottom: 30px; }
-    .withdrawal-card { background: rgba(30,30,60,0.6); border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
-    .withdrawal-card p { margin: 4px 0; font-size: 0.85rem; }
+    .logout { background: #ef4444; margin-bottom: 12px; }
+    .user-card, .withdrawal-card { background: rgba(30,30,60,0.7); border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .user-card p, .withdrawal-card p { margin: 4px 0; font-size: 0.85rem; }
+    .label { color: #a78bfa; font-weight: 600; }
     .status-pending { color: #f59e0b; }
     .status-approved { color: #22c55e; }
   </style>
@@ -25,31 +24,16 @@
   <button class="logout" onclick="logout()">Logout</button>
   <h1>Admin Panel</h1>
 
-  <div style="margin-bottom: 20px;">
+  <div>
     <button class="secondary" id="autoApproveBtn" onclick="toggleAutoApprove()">Auto-Approve: OFF</button>
     <button class="danger" onclick="deductFee()">Deduct ₦5,000 Fee</button>
   </div>
 
-  <div class="section">
-    <h2>Users</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Phone</th>
-          <th>Membership</th>
-          <th>Paid</th>
-        </tr>
-      </thead>
-      <tbody id="usersTable"></tbody>
-    </table>
-  </div>
+  <h2>Users</h2>
+  <div id="usersList">Loading...</div>
 
-  <div class="section">
-    <h2>Withdrawal Requests</h2>
-    <div id="withdrawalsList">Loading...</div>
-  </div>
+  <h2>Withdrawal Requests</h2>
+  <div id="withdrawalsList">Loading...</div>
 
   <script>
     const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
@@ -66,22 +50,24 @@
       try {
         const res = await fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + token } });
         const users = await res.json();
-        const tbody = document.getElementById('usersTable');
+        const container = document.getElementById('usersList');
         if (!users || users.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
+          container.innerHTML = '<p>No users found.</p>';
           return;
         }
-        tbody.innerHTML = users.map(u => `
-          <tr>
-            <td>${u.name || '-'}</td>
-            <td>${u.email || '-'}</td>
-            <td>${u.phone || '-'}</td>
-            <td>${u.membership || 'free'}</td>
-            <td>${u.paid ? 'Yes' : 'No'}</td>
-          </tr>
+        container.innerHTML = users.map(u => `
+          <div class="user-card">
+            <p><span class="label">Name:</span> ${u.name || '-'}</p>
+            <p><span class="label">Email:</span> ${u.email || '-'}</p>
+            <p><span class="label">Phone:</span> ${u.phone || '-'}</p>
+            <p><span class="label">Membership:</span> ${u.membership || 'free'}</p>
+            <p><span class="label">Task Wallet:</span> ₦${(u.taskWallet || 0).toLocaleString()}</p>
+            <p><span class="label">Referral Wallet:</span> ₦${(u.referralWallet || 0).toLocaleString()}</p>
+            <p><span class="label">Paid:</span> ${u.paid ? 'Yes' : 'No'}</p>
+          </div>
         `).join('');
       } catch (e) {
-        document.getElementById('usersTable').innerHTML = '<tr><td colspan="5">Error loading users.</td></tr>';
+        document.getElementById('usersList').innerHTML = '<p>Error loading users.</p>';
       }
     }
 
@@ -96,13 +82,13 @@
         }
         container.innerHTML = withdrawals.map(w => `
           <div class="withdrawal-card">
-            <p><strong>User:</strong> ${w.userId || '-'}</p>
-            <p><strong>Amount:</strong> ₦${(w.amount || 0).toLocaleString()}</p>
-            <p><strong>Bank:</strong> ${w.bankName || '-'}</p>
-            <p><strong>Account Number:</strong> ${w.accountNumber || '-'}</p>
-            <p><strong>Account Name:</strong> ${w.accountName || '-'}</p>
-            <p><strong>Status:</strong> <span class="status-\( {w.status || 'pending'}"> \){w.status || 'pending'}</span></p>
-            <p><strong>Date:</strong> ${w.date ? new Date(w.date).toLocaleString() : '-'}</p>
+            <p><span class="label">User:</span> ${w.userId || '-'}</p>
+            <p><span class="label">Amount:</span> ₦${(w.amount || 0).toLocaleString()}</p>
+            <p><span class="label">Bank Name:</span> ${w.bankName || '-'}</p>
+            <p><span class="label">Account Number:</span> ${w.accountNumber || '-'}</p>
+            <p><span class="label">Account Name:</span> ${w.accountName || '-'}</p>
+            <p><span class="label">Status:</span> <span class="status-\( {w.status || 'pending'}"> \){w.status || 'pending'}</span></p>
+            <p><span class="label">Date:</span> ${w.date ? new Date(w.date).toLocaleString() : '-'}</p>
           </div>
         `).join('');
       } catch (e) {
