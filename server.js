@@ -158,7 +158,6 @@ const server = http.createServer((req, res) => {
     if (body.length > 100000) req.destroy();
   });
 
-  // Activate account after payment (call this from Paystack callback or manually)
   if (pathname === '/api/auth/activate' && req.method === 'POST') {
     req.on('end', () => {
       try {
@@ -387,7 +386,15 @@ const server = http.createServer((req, res) => {
     const user = getAuthUser(req);
     if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
     const data = db.readDb();
-    const users = data.users.map(u => ({ name: u.name, email: u.email, membership: u.membership, taskWallet: u.taskWallet, referralWallet: u.referralWallet, paid: !!u.paid }));
+    const users = data.users.map(u => ({ 
+      name: u.name, 
+      email: u.email, 
+      phone: u.phone || '',
+      membership: u.membership, 
+      taskWallet: u.taskWallet, 
+      referralWallet: u.referralWallet, 
+      paid: !!u.paid 
+    }));
     send(res, 200, users);
     return;
   }
@@ -438,7 +445,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Admin can manually activate a user
   if (pathname === '/api/admin/activate' && req.method === 'POST') {
     const user = getAuthUser(req);
     if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
