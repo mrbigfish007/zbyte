@@ -8,7 +8,6 @@ const db = require('./lib/db');
 const PORT = process.env.PORT || 3000;
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || '';
 
-// Rate limiting
 const rateLimit = new Map();
 function checkRateLimit(ip) {
   const now = Date.now();
@@ -85,13 +84,14 @@ function ensureAdmin() {
     admin = {
       email: adminEmail, name: 'MR BIG FSH', salt, hash, token: null,
       taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01',
-      membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true
+      membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true, paid: true
     };
     data.users.push(admin);
     db.writeDb(data);
   } else {
     admin.isAdmin = true;
     admin.membership = 'gold';
+    admin.paid = true;
     db.writeDb(data);
   }
 
@@ -155,10 +155,27 @@ const server = http.createServer((req, res) => {
   let body = '';
   req.on('data', chunk => {
     body += chunk;
-    if (body.length > 100000) {
-      req.destroy();
-    }
+    if (body.length > 100000) req.destroy();
   });
+
+  // Activate account after payment (call this from Paystack callback or manually)
+  if (pathname === '/api/auth/activate' && req.method === 'POST') {
+    req.on('end', () => {
+      try {
+        const { email } = JSON.parse(body);
+        const data = db.readDb();
+        const user = data.users.find(u => u.email === sanitize(email).toLowerCase());
+        if (user) {
+          user.paid = true;
+          db.writeDb(data);
+          send(res, 200, { success: true });
+        } else {
+          send(res, 404, { error: 'User not found' });
+        }
+      } catch (e) { send(res, 500, { error: 'Server error' }); }
+    });
+    return;
+  }
 
   if (pathname === '/api/auth/register' && req.method === 'POST') {
     req.on('end', () => {
@@ -181,7 +198,8 @@ const server = http.createServer((req, res) => {
         const newUser = {
           email, name, phone: phone || '', salt, hash, token: null,
           taskWallet: 0, referralWallet: 0, referralCode: 'USER' + Date.now().toString().slice(-6),
-          membership: membership || 'free', bio: '', profilePicture: '', referredBy: referral || ''
+          membership: membership || 'free', bio: '', profilePicture: '', referredBy: referral || '',
+          paid: false
         };
         data.users.push(newUser);
         creditReferrer(data, referral, membership);
@@ -207,19 +225,21 @@ const server = http.createServer((req, res) => {
             user = { 
               email: cleanEmail, name: 'MR BIG FSH', salt: '', hash: '', token: null, 
               taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', 
-              membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true 
+              membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true, paid: true 
             };
             data.users.push(user);
           }
           user.token = crypto.randomBytes(32).toString('hex');
           user.isAdmin = true;
           user.membership = 'gold';
+          user.paid = true;
           db.writeDb(data);
           return send(res, 200, { token: user.token });
         }
         const data = db.readDb();
         const user = data.users.find(u => u.email === cleanEmail);
         if (!user) return send(res, 401, { error: 'Invalid credentials' });
+        if (!user.paid) return send(res, 403, { error: 'Payment required. Please complete your membership payment.' });
         const hash = crypto.pbkdf2Sync(password, user.salt, 100000, 64, 'sha512').toString('hex');
         if (hash !== user.hash) return send(res, 401, { error: 'Invalid credentials' });
         user.token = crypto.randomBytes(32).toString('hex');
@@ -238,7 +258,7 @@ const server = http.createServer((req, res) => {
       profilePicture: user.profilePicture || '', membership: user.membership || 'free',
       taskWallet: user.taskWallet || 0, referralWallet: user.referralWallet || 0,
       referralCode: user.referralCode || '', phone: user.phone || '', isAdmin: !!user.isAdmin,
-      completedTasks: user.completedTasks || []
+      completedTasks: user.completedTasks || [], paid: !!user.paid
     });
     return;
   }
@@ -367,7 +387,7 @@ const server = http.createServer((req, res) => {
     const user = getAuthUser(req);
     if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
     const data = db.readDb();
-    const users = data.users.map(u => ({ name: u.name, email: u.email, membership: u.membership, taskWallet: u.taskWallet, referralWallet: u.referralWallet }));
+    const users = data.users.map(u => ({ name: u.name, email: u.email, membership: u.membership, taskWallet: u.taskWallet, referralWallet: u.referralWallet, paid: !!u.paid }));
     send(res, 200, users);
     return;
   }
@@ -415,6 +435,27 @@ const server = http.createServer((req, res) => {
     }
     db.writeDb(data);
     send(res, 200, { success: true, count, totalDeducted });
+    return;
+  }
+
+  // Admin can manually activate a user
+  if (pathname === '/api/admin/activate' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
+    req.on('end', () => {
+      try {
+        const { email } = JSON.parse(body);
+        const data = db.readDb();
+        const u = data.users.find(x => x.email === sanitize(email).toLowerCase());
+        if (u) {
+          u.paid = true;
+          db.writeDb(data);
+          send(res, 200, { success: true });
+        } else {
+          send(res, 404, { error: 'User not found' });
+        }
+      } catch (e) { send(res, 500, { error: 'Server error' }); }
+    });
     return;
   }
 
