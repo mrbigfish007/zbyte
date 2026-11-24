@@ -21,21 +21,22 @@ function send(res, status, data) {
 function getBody(req) {
   return new Promise((resolve) => {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    req.on('data', chunk => { body += chunk; if (body.length > 1e6) req.destroy(); });
     req.on('end', () => {
-      try { resolve(JSON.parse(body || '{}')); }
-      catch (e) { resolve({}); }
+      try { resolve(JSON.parse(body || '{}')); } catch (e) { resolve({}); }
     });
   });
 }
 
 function getAuthUser(req) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) return null;
-  const token = auth.slice(7);
-  if (!token || token.length < 32) return null;
-  const data = db.readDb();
-  return data.users.find(u => u.token === token) || null;
+  try {
+    const auth = req.headers.authorization || '';
+    if (!auth.startsWith('Bearer ')) return null;
+    const token = auth.slice(7);
+    if (!token || token.length < 20) return null;
+    const data = db.readDb();
+    return (data.users || []).find(u => u.token === token) || null;
+  } catch (e) { return null; }
 }
 
 function sanitize(str) {
@@ -56,36 +57,28 @@ function creditReferrer(data, referralCode, membership) {
   const reward = getReferralReward(membership);
   if (reward <= 0) return;
   const referrer = data.users.find(u => u.referralCode === referralCode);
-  if (referrer) {
-    referrer.referralWallet = (referrer.referralWallet || 0) + reward;
-  }
+  if (referrer) referrer.referralWallet = (referrer.referralWallet || 0) + reward;
 }
 
 function ensureAdmin() {
   try {
-    const data = db.readDb();
+    const data = db.readDb() || {};
     data.users = data.users || [];
     data.tasks = data.tasks || [];
     data.withdrawals = data.withdrawals || [];
-
     const adminEmail = 'admin@zbyte.com.ng';
     let admin = data.users.find(u => u.email === adminEmail);
     if (!admin) {
       const salt = crypto.randomBytes(16).toString('hex');
       const hash = crypto.pbkdf2Sync('admin', salt, 100000, 64, 'sha512').toString('hex');
-      admin = {
-        email: adminEmail, name: 'MR BIG FSH', salt, hash, token: null,
-        taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01',
-        membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true, paid: true
-      };
+      admin = { email: adminEmail, name: 'MR BIG FSH', salt, hash, token: null, taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true, paid: true };
       data.users.push(admin);
     } else {
       admin.isAdmin = true;
       admin.membership = 'gold';
       admin.paid = true;
     }
-
-    if (!data.tasks || data.tasks.length === 0) {
+    if (!data.tasks.length) {
       data.tasks = [
         { id: 1, title: 'Complete Survey', description: 'Answer a short survey', reward: 500 },
         { id: 2, title: 'Watch Video', description: 'Watch a 30-second video', reward: 500 },
@@ -97,108 +90,87 @@ function ensureAdmin() {
       ];
     }
     db.writeDb(data);
-  } catch (e) { console.error('ensureAdmin error', e); }
+  } catch (e) { console.error(e); }
 }
 ensureAdmin();
 
 function paystackInitialize(email, amount, callback) {
-  if (!PAYSTACK_SECRET) return callback(new Error('No Paystack key'));
-  const postData = JSON.stringify({ email, amount: amount * 100, callback_url: 'https://zbyte-production.up.railway.app/dashboard.html' });
+  if (!PAYSTACK_SECRET) return callback(new Error('No key'));
+  const postData = JSON.stringify({ email, amount: Math.round(amount * 100), callback_url: 'https://zbyte-production.up.railway.app/dashboard.html' });
   const options = {
     hostname: 'api.paystack.co', path: '/transaction/initialize', method: 'POST',
     headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
   };
-  const req = https.request(options, (res) => {
-    let body = '';
-    res.on('data', chunk => body += chunk);
-    res.on('end', () => { try { callback(null, JSON.parse(body)); } catch (e) { callback(e); } });
+  const r = https.request(options, (res) => {
+    let b = '';
+    res.on('data', c => b += c);
+    res.on('end', () => { try { callback(null, JSON.parse(b)); } catch (e) { callback(e); } });
   });
-  req.on('error', callback);
-  req.write(postData);
-  req.end();
+  r.on('error', callback);
+  r.write(postData);
+  r.end();
 }
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,Authorization' });
-    res.end();
-    return;
+    return res.end();
   }
 
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname;
+  const pathname = new URL(req.url, `http://${req.headers.host}`).pathname;
 
   if (pathname === '/' || pathname.endsWith('.html') || pathname.endsWith('.js') || pathname.endsWith('.css')) {
-    const filePath = pathname === '/' ? '/public/index.html' : '/public' + pathname;
-    const fullPath = path.join(__dirname, filePath);
+    const fullPath = path.join(__dirname, pathname === '/' ? '/public/index.html' : '/public' + pathname);
     if (fs.existsSync(fullPath)) {
       const ext = path.extname(fullPath);
       const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' }[ext] || 'text/plain';
       res.writeHead(200, { 'Content-Type': mime });
-      fs.createReadStream(fullPath).pipe(res);
-      return;
+      return fs.createReadStream(fullPath).pipe(res);
     }
   }
 
   try {
     if (pathname === '/api/auth/register' && req.method === 'POST') {
-      const parsed = await getBody(req);
-      const name = sanitize(parsed.name);
-      const email = sanitize(parsed.email).toLowerCase();
-      const password = parsed.password;
-      const phone = sanitize(parsed.phone);
-      const referral = sanitize(parsed.referral);
-      const membership = sanitize(parsed.membership);
-      const amount = parseInt(parsed.amount) || 10000;
+      const p = await getBody(req);
+      const name = sanitize(p.name), email = sanitize(p.email).toLowerCase(), password = p.password;
       if (!name || !email || !password) return send(res, 400, { error: 'Missing fields' });
-      if (password.length < 6) return send(res, 400, { error: 'Password too short' });
       const data = db.readDb();
       if (data.users.find(u => u.email === email)) return send(res, 400, { error: 'Email already registered' });
       const salt = crypto.randomBytes(16).toString('hex');
       const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-      const newUser = {
-        email, name, phone: phone || '', salt, hash, token: null,
+      data.users.push({
+        email, name, phone: sanitize(p.phone), salt, hash, token: null,
         taskWallet: 0, referralWallet: 0, referralCode: 'USER' + Date.now().toString().slice(-6),
-        membership: membership || 'free', bio: '', profilePicture: '', referredBy: referral || '',
-        paid: false
-      };
-      data.users.push(newUser);
-      creditReferrer(data, referral, membership);
+        membership: sanitize(p.membership) || 'free', bio: '', profilePicture: '', referredBy: sanitize(p.referral), paid: false
+      });
       db.writeDb(data);
-      paystackInitialize(email, amount, (err, result) => {
+      const amount = parseInt(p.amount) || 10000;
+      return paystackInitialize(email, amount, (err, result) => {
         if (err || !result || !result.status) return send(res, 200, { success: true });
         send(res, 200, { success: true, authorization_url: result.data.authorization_url });
       });
-      return;
     }
 
     if (pathname === '/api/auth/login' && req.method === 'POST') {
-      const parsed = await getBody(req);
-      const cleanEmail = sanitize(parsed.email).toLowerCase();
-      const password = parsed.password;
-      if (cleanEmail === 'admin@zbyte.com.ng' && password === 'admin') {
+      const p = await getBody(req);
+      const email = sanitize(p.email).toLowerCase(), password = p.password;
+      if (email === 'admin@zbyte.com.ng' && password === 'admin') {
         const data = db.readDb();
-        let user = data.users.find(u => u.email === cleanEmail);
+        let user = data.users.find(u => u.email === email);
         if (!user) {
-          user = { 
-            email: cleanEmail, name: 'MR BIG FSH', salt: '', hash: '', token: null, 
-            taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', 
-            membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true, paid: true 
-          };
+          user = { email, name: 'MR BIG FSH', salt: '', hash: '', token: null, taskWallet: 0, referralWallet: 0, referralCode: 'ADMIN01', membership: 'gold', bio: '', profilePicture: '', phone: '', isAdmin: true, paid: true };
           data.users.push(user);
         }
         user.token = crypto.randomBytes(32).toString('hex');
         user.isAdmin = true;
-        user.membership = 'gold';
         user.paid = true;
         db.writeDb(data);
         return send(res, 200, { token: user.token });
       }
       const data = db.readDb();
-      const user = data.users.find(u => u.email === cleanEmail);
-      if (!user) return send(res, 401, { error: 'Invalid credentials' });
-      if (!user.paid) return send(res, 403, { error: 'Payment required' });
-      const hash = crypto.pbkdf2Sync(password, user.salt, 100000, 64, 'sha512').toString('hex');
+      const user = data.users.find(u => u.email === email);
+      if (!user || !user.paid) return send(res, 401, { error: 'Invalid credentials or payment required' });
+      const hash = crypto.pbkdf2Sync(password, user.salt || '', 100000, 64, 'sha512').toString('hex');
       if (hash !== user.hash) return send(res, 401, { error: 'Invalid credentials' });
       user.token = crypto.randomBytes(32).toString('hex');
       db.writeDb(data);
@@ -209,11 +181,9 @@ const server = http.createServer(async (req, res) => {
       const user = getAuthUser(req);
       if (!user) return send(res, 401, { error: 'Unauthorized' });
       return send(res, 200, {
-        name: user.name, email: user.email, bio: user.bio || '',
-        profilePicture: user.profilePicture || '', membership: user.membership || 'free',
-        taskWallet: user.taskWallet || 0, referralWallet: user.referralWallet || 0,
-        referralCode: user.referralCode || '', phone: user.phone || '', isAdmin: !!user.isAdmin,
-        completedTasks: user.completedTasks || [], paid: !!user.paid
+        name: user.name, email: user.email, bio: user.bio || '', profilePicture: user.profilePicture || '',
+        membership: user.membership || 'free', taskWallet: user.taskWallet || 0, referralWallet: user.referralWallet || 0,
+        referralCode: user.referralCode || '', phone: user.phone || '', isAdmin: !!user.isAdmin, paid: !!user.paid
       });
     }
 
@@ -223,15 +193,14 @@ const server = http.createServer(async (req, res) => {
       const updates = await getBody(req);
       const data = db.readDb();
       const u = data.users.find(x => x.email === user.email);
-      if (!u) return send(res, 404, { error: 'User not found' });
+      if (!u) return send(res, 404, { error: 'Not found' });
       if (updates.name) u.name = sanitize(updates.name);
       if (updates.bio !== undefined) u.bio = sanitize(updates.bio);
       if (updates.profilePicture) u.profilePicture = sanitize(updates.profilePicture);
       if (updates.phone) u.phone = sanitize(updates.phone);
-      if (updates.membership) u.membership = sanitize(updates.membership);
       if (updates.password && updates.currentPassword) {
         const hash = crypto.pbkdf2Sync(updates.currentPassword, u.salt, 100000, 64, 'sha512').toString('hex');
-        if (hash !== u.hash) return send(res, 400, { error: 'Wrong current password' });
+        if (hash !== u.hash) return send(res, 400, { error: 'Wrong password' });
         u.salt = crypto.randomBytes(16).toString('hex');
         u.hash = crypto.pbkdf2Sync(updates.password, u.salt, 100000, 64, 'sha512').toString('hex');
       }
@@ -243,49 +212,40 @@ const server = http.createServer(async (req, res) => {
       const user = getAuthUser(req);
       if (!user) return send(res, 401, { error: 'Unauthorized' });
       const data = db.readDb();
-      const membership = (user.membership || 'free').toLowerCase();
-      let limit = 0;
-      if (membership.includes('gold')) limit = 7;
-      else if (membership.includes('silver')) limit = 4;
-      else if (membership.includes('premium')) limit = 2;
+      const m = (user.membership || '').toLowerCase();
+      const limit = m.includes('gold') ? 7 : m.includes('silver') ? 4 : m.includes('premium') ? 2 : 0;
       return send(res, 200, (data.tasks || []).slice(0, limit));
     }
 
     if (pathname === '/api/tasks/complete' && req.method === 'POST') {
       const user = getAuthUser(req);
       if (!user) return send(res, 401, { error: 'Unauthorized' });
-      const parsed = await getBody(req);
+      const p = await getBody(req);
       const data = db.readDb();
       const u = data.users.find(x => x.email === user.email);
-      if (!u) return send(res, 404, { error: 'User not found' });
-      const task = (data.tasks || []).find(t => t.id === parsed.taskId);
-      if (!task) return send(res, 404, { error: 'Task not found' });
+      const task = (data.tasks || []).find(t => t.id === p.taskId);
+      if (!u || !task) return send(res, 404, { error: 'Not found' });
       u.completedTasks = u.completedTasks || [];
-      if (u.completedTasks.includes(parsed.taskId)) return send(res, 400, { error: 'Already completed' });
-      u.completedTasks.push(parsed.taskId);
+      if (u.completedTasks.includes(p.taskId)) return send(res, 400, { error: 'Already done' });
+      u.completedTasks.push(p.taskId);
       u.taskWallet = (u.taskWallet || 0) + (task.reward || 500);
       db.writeDb(data);
-      return send(res, 200, { success: true, reward: task.reward || 500 });
+      return send(res, 200, { success: true });
     }
 
     if (pathname === '/api/withdraw' && req.method === 'POST') {
       const user = getAuthUser(req);
       if (!user) return send(res, 401, { error: 'Unauthorized' });
-      const parsed = await getBody(req);
+      const p = await getBody(req);
       const data = db.readDb();
       const u = data.users.find(x => x.email === user.email);
-      const amount = parseFloat(parsed.amount);
-      if (!amount || amount <= 0) return send(res, 400, { error: 'Invalid amount' });
-      const balance = parsed.walletType === 'referral' ? (u.referralWallet || 0) : (u.taskWallet || 0);
-      if (amount > balance) return send(res, 400, { error: 'Insufficient balance' });
-      if (parsed.walletType === 'referral') u.referralWallet = (u.referralWallet || 0) - amount;
-      else u.taskWallet = (u.taskWallet || 0) - amount;
+      const amount = parseFloat(p.amount);
+      if (!u || !amount) return send(res, 400, { error: 'Invalid' });
+      const bal = p.walletType === 'referral' ? (u.referralWallet || 0) : (u.taskWallet || 0);
+      if (amount > bal) return send(res, 400, { error: 'Insufficient' });
+      if (p.walletType === 'referral') u.referralWallet -= amount; else u.taskWallet -= amount;
       data.withdrawals = data.withdrawals || [];
-      data.withdrawals.push({ 
-        id: Date.now().toString(), userId: u.email, amount,
-        bankName: sanitize(parsed.bankName), accountNumber: sanitize(parsed.accountNumber),
-        accountName: sanitize(parsed.accountName), status: 'pending', date: new Date().toISOString() 
-      });
+      data.withdrawals.push({ id: Date.now().toString(), userId: u.email, amount, bankName: sanitize(p.bankName), accountNumber: sanitize(p.accountNumber), accountName: sanitize(p.accountName), status: 'pending', date: new Date().toISOString() });
       db.writeDb(data);
       return send(res, 200, { success: true });
     }
@@ -293,27 +253,24 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/upgrade' && req.method === 'POST') {
       const user = getAuthUser(req);
       if (!user) return send(res, 401, { error: 'Unauthorized' });
-      const parsed = await getBody(req);
-      paystackInitialize(user.email, parseInt(parsed.amount) || 20000, (err, result) => {
-        if (err || !result || !result.status) return send(res, 500, { error: 'Payment failed' });
+      const p = await getBody(req);
+      return paystackInitialize(user.email, parseInt(p.amount) || 20000, (err, result) => {
+        if (err || !result || !result.status) return send(res, 500, { error: 'Failed' });
         const data = db.readDb();
         const u = data.users.find(x => x.email === user.email);
-        if (u) { u.pendingUpgrade = sanitize(parsed.membership); db.writeDb(data); }
+        if (u) { u.pendingUpgrade = sanitize(p.membership); db.writeDb(data); }
         send(res, 200, { authorization_url: result.data.authorization_url });
       });
-      return;
     }
 
     if (pathname === '/api/admin/users' && req.method === 'GET') {
       const user = getAuthUser(req);
       if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
       const data = db.readDb();
-      const users = (data.users || []).map(u => ({ 
-        name: u.name, email: u.email, phone: u.phone || '',
-        membership: u.membership, taskWallet: u.taskWallet || 0, 
-        referralWallet: u.referralWallet || 0, paid: !!u.paid, isAdmin: !!u.isAdmin
-      }));
-      return send(res, 200, users);
+      return send(res, 200, (data.users || []).map(u => ({
+        name: u.name, email: u.email, phone: u.phone || '', membership: u.membership,
+        taskWallet: u.taskWallet || 0, referralWallet: u.referralWallet || 0, paid: !!u.paid, isAdmin: !!u.isAdmin
+      })));
     }
 
     if (pathname === '/api/admin/withdrawals' && req.method === 'GET') {
@@ -337,28 +294,41 @@ const server = http.createServer(async (req, res) => {
       const user = getAuthUser(req);
       if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
       const data = db.readDb();
-      let totalDeducted = 0, count = 0;
+      let total = 0, count = 0;
       data.users.forEach(u => {
         if (u.membership && u.membership !== 'free' && (u.taskWallet || 0) >= 5000) {
-          u.taskWallet = (u.taskWallet || 0) - 5000;
-          totalDeducted += 5000;
-          count++;
+          u.taskWallet -= 5000; total += 5000; count++;
         }
       });
       const admin = data.users.find(u => u.email === 'admin@zbyte.com.ng');
-      if (admin) admin.taskWallet = (admin.taskWallet || 0) + totalDeducted;
+      if (admin) admin.taskWallet = (admin.taskWallet || 0) + total;
       db.writeDb(data);
-      return send(res, 200, { success: true, count, totalDeducted });
+      return send(res, 200, { success: true, count, total });
     }
 
     if (pathname === '/api/admin/delete-user' && req.method === 'POST') {
       const user = getAuthUser(req);
       if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
-      const parsed = await getBody(req);
+      const p = await getBody(req);
       const data = db.readDb();
-      data.users = data.users.filter(u => u.email !== parsed.email || u.isAdmin);
+      data.users = data.users.filter(u => u.email !== p.email || u.isAdmin);
       db.writeDb(data);
       return send(res, 200, { success: true });
+    }
+
+    if (pathname === '/api/admin/activate' && req.method === 'POST') {
+      const user = getAuthUser(req);
+      if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
+      const p = await getBody(req);
+      const data = db.readDb();
+      const u = data.users.find(x => x.email === p.email);
+      if (u) {
+        u.paid = true;
+        if (u.referredBy) creditReferrer(data, u.referredBy, u.membership);
+        db.writeDb(data);
+        return send(res, 200, { success: true });
+      }
+      return send(res, 404, { error: 'Not found' });
     }
 
     send(res, 404, { error: 'Not found' });
@@ -368,4 +338,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log('Server running on port ' + PORT));
