@@ -393,7 +393,8 @@ const server = http.createServer((req, res) => {
       membership: u.membership, 
       taskWallet: u.taskWallet, 
       referralWallet: u.referralWallet, 
-      paid: !!u.paid 
+      paid: !!u.paid,
+      isAdmin: !!u.isAdmin
     }));
     send(res, 200, users);
     return;
@@ -460,6 +461,21 @@ const server = http.createServer((req, res) => {
         } else {
           send(res, 404, { error: 'User not found' });
         }
+      } catch (e) { send(res, 500, { error: 'Server error' }); }
+    });
+    return;
+  }
+
+  if (pathname === '/api/admin/delete-user' && req.method === 'POST') {
+    const user = getAuthUser(req);
+    if (!user || !user.isAdmin) return send(res, 403, { error: 'Forbidden' });
+    req.on('end', () => {
+      try {
+        const { email } = JSON.parse(body);
+        const data = db.readDb();
+        data.users = data.users.filter(u => u.email !== email || u.isAdmin);
+        db.writeDb(data);
+        send(res, 200, { success: true });
       } catch (e) { send(res, 500, { error: 'Server error' }); }
     });
     return;
