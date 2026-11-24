@@ -12,12 +12,15 @@
     button { background: #7c3aed; color: white; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; margin: 4px; font-size: 0.85rem; }
     button.danger { background: #ef4444; }
     button.secondary { background: #334155; }
+    button.small { padding: 6px 10px; font-size: 0.75rem; }
     .logout { background: #ef4444; margin-bottom: 12px; }
     .user-card, .withdrawal-card { background: rgba(30,30,60,0.7); border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
     .user-card p, .withdrawal-card p { margin: 4px 0; font-size: 0.85rem; }
     .label { color: #a78bfa; font-weight: 600; }
     .status-pending { color: #f59e0b; }
     .status-approved { color: #22c55e; }
+    .paid-no { color: #f87171; }
+    .paid-yes { color: #22c55e; }
   </style>
 </head>
 <body>
@@ -63,11 +66,26 @@
             <p><span class="label">Membership:</span> ${u.membership || 'free'}</p>
             <p><span class="label">Task Wallet:</span> ₦${(u.taskWallet || 0).toLocaleString()}</p>
             <p><span class="label">Referral Wallet:</span> ₦${(u.referralWallet || 0).toLocaleString()}</p>
-            <p><span class="label">Paid:</span> ${u.paid ? 'Yes' : 'No'}</p>
+            <p><span class="label">Paid:</span> <span class="\( {u.paid ? 'paid-yes' : 'paid-no'}"> \){u.paid ? 'Yes' : 'No'}</span></p>
+            \( {!u.paid && !u.isAdmin ? `<button class="danger small" onclick="deleteUser(' \){u.email}')">Delete</button>` : ''}
           </div>
         `).join('');
       } catch (e) {
         document.getElementById('usersList').innerHTML = '<p>Error loading users.</p>';
+      }
+    }
+
+    async function deleteUser(email) {
+      if (!confirm('Delete this unpaid user?')) return;
+      try {
+        await fetch('/api/admin/delete-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ email })
+        });
+        loadUsers();
+      } catch (e) {
+        alert('Error deleting user');
       }
     }
 
