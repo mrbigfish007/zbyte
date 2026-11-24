@@ -1,135 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Panel – ZBYTE</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #050510; color: #fff; padding: 12px; margin: 0; }
-    h1 { font-size: 1.5rem; margin-bottom: 12px; }
-    h2 { font-size: 1.2rem; margin: 20px 0 10px; }
-    button { background: #7c3aed; color: white; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; margin: 4px; font-size: 0.85rem; }
-    button.danger { background: #ef4444; }
-    button.secondary { background: #334155; }
-    button.small { padding: 6px 10px; font-size: 0.75rem; }
-    .user-card, .withdrawal-card { background: rgba(30,30,60,0.7); border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
-    .user-card p, .withdrawal-card p { margin: 4px 0; font-size: 0.85rem; }
-    .label { color: #a78bfa; font-weight: 600; }
-    .paid-no { color: #f87171; }
-    .paid-yes { color: #22c55e; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – ZBYTE</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#050510;color:#fff;padding:12px;margin:0}
+h1{font-size:1.4rem;margin:0 0 12px}
+h2{font-size:1.1rem;margin:16px 0 8px}
+button{background:#7c3aed;color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer;margin:4px;font-size:.85rem}
+button.danger{background:#ef4444}
+button.secondary{background:#334155}
+button.small{padding:6px 10px;font-size:.75rem}
+.card{background:rgba(30,30,60,.7);border:1px solid #333;border-radius:10px;padding:12px;margin-bottom:10px}
+.card p{margin:4px 0;font-size:.85rem}
+.label{color:#a78bfa;font-weight:600}
+.paid-no{color:#f87171}
+.paid-yes{color:#22c55e}
+</style>
 </head>
 <body>
-  <button class="danger" onclick="logout()">Logout</button>
-  <h1>Admin Panel</h1>
-  <div>
-    <button class="secondary" id="autoApproveBtn" onclick="toggleAutoApprove()">Auto-Approve: OFF</button>
-    <button class="danger" onclick="deductFee()">Deduct ₦5,000 Fee</button>
-  </div>
-  <h2>Users</h2>
-  <div id="usersList">Loading...</div>
-  <h2>Withdrawal Requests</h2>
-  <div id="withdrawalsList">Loading...</div>
+<button class="danger" onclick="doLogout()">Logout</button>
+<h1>Admin Panel</h1>
+<div>
+<button class="secondary" id="autoBtn" onclick="doAuto()">Auto-Approve: OFF</button>
+<button class="danger" onclick="doFee()">Deduct ₦5,000 Fee</button>
+</div>
+<h2>Users</h2>
+<div id="users">Loading...</div>
+<h2>Withdrawals</h2>
+<div id="withdrawals">Loading...</div>
+<script>
+var token = localStorage.getItem('zbyte_token') || localStorage.getItem('token') || '';
+if (!token) window.location.href = '/login.html';
+var autoOn = false;
 
-  <script>
-    const token = localStorage.getItem('zbyte_token') || localStorage.getItem('token');
-    if (!token) window.location.href = '/login.html';
-    let autoApproveOn = false;
+function doLogout() {
+  localStorage.clear();
+  window.location.href = '/login.html';
+}
 
-    function logout() {
-      localStorage.clear();
-      window.location.href = '/login.html';
-    }
+function loadUsers() {
+  fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + token } })
+    .then(function(r) { return r.json(); })
+    .then(function(users) {
+      var el = document.getElementById('users');
+      if (!users || !users.length) { el.innerHTML = '<p>No users.</p>'; return; }
+      el.innerHTML = users.map(function(u) {
+        var del = (!u.paid && !u.isAdmin) ? '<button class="danger small" onclick="delUser(\'' + u.email + '\')">Delete</button>' : '';
+        var act = (!u.paid && !u.isAdmin) ? '<button class="small" onclick="activate(\'' + u.email + '\')">Activate</button>' : '';
+        return '<div class="card"><p><span class="label">Name:</span> ' + (u.name||'-') + '</p><p><span class="label">Email:</span> ' + (u.email||'-') + '</p><p><span class="label">Phone:</span> ' + (u.phone||'-') + '</p><p><span class="label">Membership:</span> ' + (u.membership||'free') + '</p><p><span class="label">Task Wallet:</span> ₦' + (u.taskWallet||0) + '</p><p><span class="label">Referral Wallet:</span> ₦' + (u.referralWallet||0) + '</p><p><span class="label">Paid:</span> <span class="' + (u.paid?'paid-yes':'paid-no') + '">' + (u.paid?'Yes':'No') + '</span></p>' + act + del + '</div>';
+      }).join('');
+    })
+    .catch(function() { document.getElementById('users').innerHTML = '<p style="color:#f87171">Error loading. Refresh page.</p>'; });
+}
 
-    async function loadUsers() {
-      try {
-        const res = await fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + token } });
-        if (!res.ok) throw new Error('Failed');
-        const users = await res.json();
-        const container = document.getElementById('usersList');
-        if (!users || users.length === 0) {
-          container.innerHTML = '<p>No users found.</p>';
-          return;
-        }
-        container.innerHTML = users.map(u => `
-          <div class="user-card">
-            <p><span class="label">Name:</span> ${u.name || '-'}</p>
-            <p><span class="label">Email:</span> ${u.email || '-'}</p>
-            <p><span class="label">Phone:</span> ${u.phone || '-'}</p>
-            <p><span class="label">Membership:</span> ${u.membership || 'free'}</p>
-            <p><span class="label">Task Wallet:</span> ₦${(u.taskWallet || 0).toLocaleString()}</p>
-            <p><span class="label">Referral Wallet:</span> ₦${(u.referralWallet || 0).toLocaleString()}</p>
-            <p><span class="label">Paid:</span> <span class="\( {u.paid ? 'paid-yes' : 'paid-no'}"> \){u.paid ? 'Yes' : 'No'}</span></p>
-            \( {!u.paid && !u.isAdmin ? `<button class="danger small" onclick="deleteUser(' \){u.email}')">Delete</button>` : ''}
-          </div>
-        `).join('');
-      } catch (e) {
-        document.getElementById('usersList').innerHTML = '<p style="color:#f87171;">Error loading users. Please refresh.</p>';
-      }
-    }
+function loadWithdrawals() {
+  fetch('/api/admin/withdrawals', { headers: { 'Authorization': 'Bearer ' + token } })
+    .then(function(r) { return r.json(); })
+    .then(function(list) {
+      var el = document.getElementById('withdrawals');
+      if (!list || !list.length) { el.innerHTML = '<p>No withdrawals.</p>'; return; }
+      el.innerHTML = list.map(function(w) {
+        return '<div class="card"><p><span class="label">User:</span> ' + (w.userId||'-') + '</p><p><span class="label">Amount:</span> ₦' + (w.amount||0) + '</p><p><span class="label">Bank:</span> ' + (w.bankName||'-') + '</p><p><span class="label">Account:</span> ' + (w.accountNumber||'-') + '</p><p><span class="label">Name:</span> ' + (w.accountName||'-') + '</p><p><span class="label">Status:</span> ' + (w.status||'pending') + '</p></div>';
+      }).join('');
+    })
+    .catch(function() { document.getElementById('withdrawals').innerHTML = '<p style="color:#f87171">Error.</p>'; });
+}
 
-    async function deleteUser(email) {
-      if (!confirm('Delete this user?')) return;
-      try {
-        await fetch('/api/admin/delete-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ email })
-        });
-        loadUsers();
-      } catch (e) { alert('Error deleting user'); }
-    }
+function delUser(email) {
+  if (!confirm('Delete?')) return;
+  fetch('/api/admin/delete-user', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ email: email }) })
+    .then(function() { loadUsers(); })
+    .catch(function() { alert('Error'); });
+}
 
-    async function loadWithdrawals() {
-      try {
-        const res = await fetch('/api/admin/withdrawals', { headers: { 'Authorization': 'Bearer ' + token } });
-        if (!res.ok) throw new Error('Failed');
-        const withdrawals = await res.json();
-        const container = document.getElementById('withdrawalsList');
-        if (!withdrawals || withdrawals.length === 0) {
-          container.innerHTML = '<p>No withdrawal requests.</p>';
-          return;
-        }
-        container.innerHTML = withdrawals.map(w => `
-          <div class="withdrawal-card">
-            <p><span class="label">User:</span> ${w.userId || '-'}</p>
-            <p><span class="label">Amount:</span> ₦${(w.amount || 0).toLocaleString()}</p>
-            <p><span class="label">Bank:</span> ${w.bankName || '-'}</p>
-            <p><span class="label">Account Number:</span> ${w.accountNumber || '-'}</p>
-            <p><span class="label">Account Name:</span> ${w.accountName || '-'}</p>
-            <p><span class="label">Status:</span> ${w.status || 'pending'}</p>
-          </div>
-        `).join('');
-      } catch (e) {
-        document.getElementById('withdrawalsList').innerHTML = '<p style="color:#f87171;">Error loading withdrawals.</p>';
-      }
-    }
+function activate(email) {
+  if (!confirm('Activate this user and credit referrer?')) return;
+  fetch('/api/admin/activate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ email: email }) })
+    .then(function() { loadUsers(); })
+    .catch(function() { alert('Error'); });
+}
 
-    async function toggleAutoApprove() {
-      autoApproveOn = !autoApproveOn;
-      document.getElementById('autoApproveBtn').textContent = 'Auto-Approve: ' + (autoApproveOn ? 'ON' : 'OFF');
-      if (autoApproveOn) {
-        try {
-          await fetch('/api/admin/auto-approve', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
-          alert('Approved');
-          loadWithdrawals();
-        } catch (e) { alert('Error'); }
-      }
-    }
+function doAuto() {
+  autoOn = !autoOn;
+  document.getElementById('autoBtn').textContent = 'Auto-Approve: ' + (autoOn ? 'ON' : 'OFF');
+  if (autoOn) {
+    fetch('/api/admin/auto-approve', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } })
+      .then(function() { alert('Done'); loadWithdrawals(); })
+      .catch(function() { alert('Error'); });
+  }
+}
 
-    async function deductFee() {
-      if (!confirm('Deduct ₦5,000 from active users?')) return;
-      try {
-        const res = await fetch('/api/admin/deduct-fee', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
-        const result = await res.json();
-        alert('Done. Deducted from ' + (result.count || 0) + ' users.');
-        loadUsers();
-      } catch (e) { alert('Error'); }
-    }
+function doFee() {
+  if (!confirm('Deduct ₦5,000 from active users?')) return;
+  fetch('/api/admin/deduct-fee', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) { alert('Deducted from ' + (res.count||0) + ' users'); loadUsers(); })
+    .catch(function() { alert('Error'); });
+}
 
-    loadUsers();
-    loadWithdrawals();
-  </script>
+loadUsers();
+loadWithdrawals();
+</script>
 </body>
 </html>
